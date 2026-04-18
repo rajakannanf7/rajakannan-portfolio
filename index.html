@@ -7,154 +7,147 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;background:#0a0a0a;overflow:hidden;cursor:none;}
-body{font-family:'Barlow',sans-serif;display:flex;align-items:center;justify-content:center;}
+html,body{width:100%;height:100%;overflow:hidden;background:#030303;cursor:none;}
+body{font-family:'Barlow',sans-serif;}
 
+/* CURSOR */
 #cur-dot{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);background:linear-gradient(135deg,#f857a6,#c850f5);mix-blend-mode:screen;}
-#cur-ring{position:fixed;width:38px;height:38px;border:1px solid rgba(248,87,166,.6);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .1s,top .1s,width .22s,height .22s,border-color .22s;}
+#cur-ring{position:fixed;width:38px;height:38px;border:1px solid rgba(248,87,166,.55);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .1s,top .1s,width .2s,height .2s,border-color .2s;}
 
-.device{
-  position:relative;
-  width:min(97vw,1120px);
-  height:min(77vh,675px);
-  border-radius:18px;
-  overflow:hidden;
-  background:#050505;
-  box-shadow:
-    0 60px 140px rgba(0,0,0,.85),
-    0 0 0 1px rgba(255,255,255,.04),
-    0 0 80px rgba(200,80,245,.04) inset;
-}
+/* CANVAS — full screen behind everything */
+#helix-c{position:fixed;inset:0;width:100vw!important;height:100vh!important;z-index:1;pointer-events:none;}
 
 /* NAV */
-.nav{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:1.4rem 2.4rem;background:linear-gradient(to bottom,rgba(5,5,5,.7),transparent);}
-.nav-logo{display:flex;align-items:center;gap:.5rem;font-weight:700;font-size:.82rem;color:#fff;text-decoration:none;letter-spacing:.04em;}
-.nav-logo-icon{width:20px;height:20px;background:linear-gradient(135deg,#f857a6,#c850f5);clip-path:polygon(0 0,100% 50%,0 100%);}
-.nav-links{display:flex;gap:2.4rem;}
-.nav-links a{font-family:'Share Tech Mono',monospace;font-size:.63rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;transition:color .3s;}
+nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:1.6rem 3rem;background:linear-gradient(to bottom,rgba(3,3,3,.7) 0%,transparent 100%);}
+.nav-logo{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:.85rem;letter-spacing:.05em;color:#fff;text-decoration:none;}
+.nav-logo-icon{width:20px;height:20px;background:linear-gradient(135deg,#f857a6,#c850f5);clip-path:polygon(0 0,100% 50%,0 100%);flex-shrink:0;}
+.nav-links{display:flex;gap:2.8rem;}
+.nav-links a{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;transition:color .3s;}
 .nav-links a:hover,.nav-links a.on{color:#fff;}
 
-/* CANVAS STACK */
-#ribbon-c{position:absolute;inset:0;z-index:2;width:100%!important;height:100%!important;pointer-events:none;}
-
-/* HERO TEXT — z:1 */
-.hero-text{
-  position:absolute;inset:0;z-index:1;
-  display:flex;flex-direction:column;
-  justify-content:center;padding:0 3rem;
-  pointer-events:none;user-select:none;overflow:hidden;
-}
-.ht{display:block;font-weight:900;font-size:clamp(5rem,12.5vw,13.5rem);line-height:.88;letter-spacing:-.028em;color:#fff;text-transform:uppercase;overflow:hidden;}
+/* HERO — full screen */
+.hero{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:0 5vw;pointer-events:none;overflow:hidden;}
+.ht{display:block;font-weight:900;font-size:clamp(5.5rem,13vw,15rem);line-height:.87;letter-spacing:-.03em;color:#fff;text-transform:uppercase;overflow:hidden;}
 .ht span{display:block;animation:sup .9s cubic-bezier(.16,1,.3,1) both;}
-.ht:nth-child(1) span{animation-delay:.08s;}
-.ht:nth-child(2) span{animation-delay:.22s;}
-.ht:nth-child(3) span{animation-delay:.36s;}
+.ht:nth-child(1) span{animation-delay:.06s;}
+.ht:nth-child(2) span{animation-delay:.2s;}
+.ht:nth-child(3) span{animation-delay:.34s;}
 @keyframes sup{from{transform:translateY(110%);}to{transform:translateY(0);}}
 
-/* CHROME UI — z:30 */
-.bl{position:absolute;bottom:2.5rem;left:2.4rem;z-index:30;}
-.bl-small{font-size:.78rem;color:rgba(255,255,255,.38);line-height:1.65;font-weight:300;}
-.bl-bold{font-size:.92rem;font-weight:700;color:#fff;}
+/* BOTTOM LEFT */
+.bl{position:fixed;bottom:3rem;left:3rem;z-index:50;}
+.bl-small{font-size:.82rem;color:rgba(255,255,255,.38);line-height:1.7;font-weight:300;}
+.bl-bold{font-size:.95rem;font-weight:700;color:#fff;}
 
-.explore-row{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:1rem;}
-.explore-line{width:2.5rem;height:1px;background:linear-gradient(90deg,transparent,rgba(200,80,245,.5));}
+/* EXPLORE */
+.explore-row{position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:1.2rem;}
+.explore-line{width:3rem;height:1px;}
+.explore-line:first-child{background:linear-gradient(90deg,transparent,rgba(200,80,245,.5));}
 .explore-line:last-child{background:linear-gradient(90deg,rgba(200,80,245,.5),transparent);}
-.explore-btn{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:#fff;background:rgba(200,80,245,.08);border:1px solid rgba(200,80,245,.3);padding:.62rem 1.5rem;cursor:none;backdrop-filter:blur(12px);transition:background .3s,border-color .3s,box-shadow .3s;text-decoration:none;white-space:nowrap;}
-.explore-btn:hover{background:rgba(200,80,245,.18);border-color:rgba(200,80,245,.7);box-shadow:0 0 20px rgba(200,80,245,.25);}
+.explore-btn{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#fff;background:rgba(200,80,245,.1);border:1px solid rgba(200,80,245,.35);padding:.65rem 1.6rem;cursor:none;backdrop-filter:blur(14px);transition:background .3s,border-color .3s,box-shadow .3s;text-decoration:none;white-space:nowrap;}
+.explore-btn:hover{background:rgba(200,80,245,.22);border-color:rgba(200,80,245,.75);box-shadow:0 0 24px rgba(200,80,245,.3);}
 
-.ghost-num{position:absolute;bottom:-1rem;right:.8rem;z-index:2;font-weight:900;font-size:clamp(7rem,16vw,13.5rem);-webkit-text-stroke:1px rgba(255,255,255,.055);color:transparent;letter-spacing:-.04em;line-height:1;pointer-events:none;}
+/* GHOST NUMBER */
+.ghost-num{position:fixed;bottom:-1.5rem;right:1.5rem;z-index:2;font-weight:900;font-size:clamp(8rem,18vw,16rem);-webkit-text-stroke:1px rgba(255,255,255,.04);color:transparent;letter-spacing:-.04em;line-height:1;pointer-events:none;}
 
-.r-ctrl{position:absolute;right:1.8rem;top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;align-items:center;gap:.7rem;}
-.arr-row{display:flex;gap:.5rem;margin-bottom:.3rem;}
-.arr{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:rgba(255,255,255,.45);cursor:none;transition:border-color .3s,color .3s,box-shadow .3s;}
-.arr:hover{border-color:rgba(200,80,245,.7);color:#fff;box-shadow:0 0 12px rgba(200,80,245,.3);}
+/* RIGHT CONTROLS */
+.r-ctrl{position:fixed;right:2.5rem;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;align-items:center;gap:.8rem;}
+.arr-row{display:flex;gap:.5rem;margin-bottom:.4rem;}
+.arr{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.55);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:rgba(255,255,255,.45);cursor:none;transition:border-color .3s,color .3s,box-shadow .3s;}
+.arr:hover{border-color:rgba(200,80,245,.7);color:#fff;box-shadow:0 0 14px rgba(200,80,245,.3);}
 .dot{width:6px;height:6px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;cursor:none;transition:all .3s;}
-.dot.on{background:linear-gradient(135deg,#f857a6,#c850f5);border-color:transparent;transform:scale(1.35);box-shadow:0 0 8px rgba(200,80,245,.6);}
+.dot.on{background:linear-gradient(135deg,#f857a6,#c850f5);border-color:transparent;transform:scale(1.4);box-shadow:0 0 10px rgba(200,80,245,.6);}
 
-.sbar{position:absolute;bottom:0;left:0;right:0;height:26px;background:rgba(5,5,5,.92);border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;padding:0 1.5rem;gap:2.2rem;z-index:30;border-radius:0 0 18px 18px;}
-.si{font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.18);display:flex;align-items:center;gap:.4rem;}
+/* STATUS BAR */
+.sbar{position:fixed;bottom:0;left:0;right:0;height:28px;background:rgba(3,3,3,.85);border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;padding:0 2rem;gap:2.5rem;z-index:50;}
+.si{font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.18);display:flex;align-items:center;gap:.4rem;}
 .si-dot{width:3px;height:3px;border-radius:50%;background:linear-gradient(135deg,#f857a6,#c850f5);}
 .si-r{margin-left:auto;}
 
-/* PANELS */
-.panels{position:absolute;inset:0;z-index:20;pointer-events:none;border-radius:18px;overflow:hidden;}
-.panel{position:absolute;inset:0;background:#050505;opacity:0;transform:translateX(55px);pointer-events:none;transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1);}
+/* SECTION PANELS — full screen overlays */
+.panels{position:fixed;inset:0;z-index:40;pointer-events:none;}
+.panel{position:absolute;inset:0;background:rgba(3,3,3,.96);backdrop-filter:blur(20px);opacity:0;transform:translateX(60px);pointer-events:none;transition:opacity .55s cubic-bezier(.16,1,.3,1),transform .55s cubic-bezier(.16,1,.3,1);}
 .panel.on{opacity:1;transform:none;pointer-events:all;}
-.p2{display:grid;grid-template-columns:1fr 1fr;height:100%;}
-.pp{padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:center;}
-.pbr{border-right:1px solid rgba(255,255,255,.04);}
 
-.slbl{font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:.24em;text-transform:uppercase;color:#c850f5;display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;}
-.slbl::before{content:'';width:15px;height:1px;background:linear-gradient(90deg,#f857a6,#c850f5);}
-.sh{font-family:'Barlow',sans-serif;font-weight:900;font-size:clamp(2.8rem,5.5vw,6rem);line-height:.9;color:#fff;text-transform:uppercase;margin-bottom:1.3rem;}
-.sh .g{-webkit-text-stroke:1px rgba(255,255,255,.12);color:transparent;display:block;}
-.sb2{font-size:.82rem;color:rgba(255,255,255,.38);line-height:1.9;font-weight:300;max-width:40ch;}
+/* Panel layouts */
+.p2{display:grid;grid-template-columns:1fr 1fr;height:100%;padding-top:80px;}
+.pp{padding:3.5rem 4rem;display:flex;flex-direction:column;justify-content:center;}
+.pbr{border-right:1px solid rgba(255,255,255,.05);}
+
+.slbl{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.25em;text-transform:uppercase;color:#c850f5;display:flex;align-items:center;gap:.6rem;margin-bottom:1.2rem;}
+.slbl::before{content:'';width:16px;height:1px;background:linear-gradient(90deg,#f857a6,#c850f5);}
+.sh{font-family:'Barlow',sans-serif;font-weight:900;font-size:clamp(3rem,5.5vw,6.5rem);line-height:.9;color:#fff;text-transform:uppercase;margin-bottom:1.4rem;}
+.sh .g{-webkit-text-stroke:1px rgba(255,255,255,.13);color:transparent;display:block;}
+.sb2{font-size:.85rem;color:rgba(255,255,255,.38);line-height:1.9;font-weight:300;max-width:42ch;}
 .sb2 strong{color:#fff;font-weight:600;}
-.sts{display:flex;gap:2.2rem;margin-top:1.8rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.04);}
-.stn{font-family:'Barlow',sans-serif;font-weight:900;font-size:2.2rem;color:#fff;line-height:1;}
-.stn span{background:linear-gradient(135deg,#f857a6,#c850f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1.3rem;}
-.stl{font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:.14em;color:rgba(255,255,255,.25);text-transform:uppercase;margin-top:.2rem;}
+.sts{display:flex;gap:2.5rem;margin-top:2rem;padding-top:1.8rem;border-top:1px solid rgba(255,255,255,.05);}
+.stn{font-family:'Barlow',sans-serif;font-weight:900;font-size:2.4rem;color:#fff;line-height:1;}
+.stn span{background:linear-gradient(135deg,#f857a6,#c850f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:1.4rem;}
+.stl{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.15em;color:rgba(255,255,255,.25);text-transform:uppercase;margin-top:.2rem;}
 
 .sk-list{display:flex;flex-direction:column;gap:1px;justify-content:center;}
-.sk{padding:.95rem 1.2rem;border:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;display:flex;align-items:center;justify-content:space-between;transition:border-left-color .3s,background .3s;cursor:default;}
+.sk{padding:1rem 1.3rem;border:1px solid rgba(255,255,255,.05);border-left:2px solid transparent;display:flex;align-items:center;justify-content:space-between;transition:border-left-color .3s,background .3s;cursor:default;}
 .sk:hover{border-left-color:#c850f5;background:rgba(200,80,245,.04);}
-.sk-n{font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:#fff;}
-.sk-t{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-top:.15rem;}
-.sk-num{font-family:'Barlow',sans-serif;font-weight:900;font-size:1.6rem;color:rgba(255,255,255,.04);}
+.sk-n{font-weight:600;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:#fff;}
+.sk-t{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-top:.18rem;}
+.sk-num{font-family:'Barlow',sans-serif;font-weight:900;font-size:1.8rem;color:rgba(255,255,255,.04);}
 
-.wl{height:100%;display:flex;flex-direction:column;padding:2.2rem;}
-.wh{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.2rem;}
+/* WORKS */
+.wl{height:100%;display:flex;flex-direction:column;padding:2.5rem 4rem;padding-top:100px;}
+.wh{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.5rem;}
 .wg{flex:1;display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;min-height:0;}
-.wc{position:relative;overflow:hidden;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);cursor:none;}
+.wc{position:relative;overflow:hidden;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);cursor:none;}
 .wc.big{grid-row:1/3;}
 .wc:hover .wco{opacity:1;}.wc:hover .wcb{transform:scale(1.05);}.wc:hover .wcl{transform:scaleX(1);}
 .wcb{position:absolute;inset:0;transition:transform .55s cubic-bezier(.16,1,.3,1);display:flex;align-items:center;justify-content:center;}
-.wco{position:absolute;inset:0;background:linear-gradient(to top,rgba(5,5,5,.97) 0%,rgba(5,5,5,.3) 55%,transparent 100%);opacity:0;transition:opacity .3s;display:flex;flex-direction:column;justify-content:flex-end;padding:1.4rem;}
-.wcc{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:#c850f5;margin-bottom:.3rem;}
-.wct{font-family:'Barlow',sans-serif;font-weight:900;font-size:1.2rem;color:#fff;}
-.wc.big .wct{font-size:2rem;}
-.wcd{font-size:.7rem;color:rgba(255,255,255,.3);margin-top:.2rem;line-height:1.5;font-weight:300;}
+.wco{position:absolute;inset:0;background:linear-gradient(to top,rgba(3,3,3,.97) 0%,rgba(3,3,3,.3) 55%,transparent 100%);opacity:0;transition:opacity .3s;display:flex;flex-direction:column;justify-content:flex-end;padding:1.5rem;}
+.wcc{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:#c850f5;margin-bottom:.35rem;}
+.wct{font-family:'Barlow',sans-serif;font-weight:900;font-size:1.25rem;color:#fff;}
+.wc.big .wct{font-size:2.1rem;}
+.wcd{font-size:.72rem;color:rgba(255,255,255,.3);margin-top:.25rem;line-height:1.5;font-weight:300;}
 .wcl{position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f857a6,#c850f5,#4facfe);transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(.16,1,.3,1);}
-.wcbadge{position:absolute;top:.8rem;left:.8rem;font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:.13em;text-transform:uppercase;color:#c850f5;border:1px solid rgba(200,80,245,.3);padding:.24rem .6rem;background:rgba(200,80,245,.08);backdrop-filter:blur(6px);}
+.wcbadge{position:absolute;top:.8rem;left:.8rem;font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.13em;text-transform:uppercase;color:#c850f5;border:1px solid rgba(200,80,245,.3);padding:.25rem .62rem;background:rgba(200,80,245,.09);backdrop-filter:blur(6px);}
 
-.svl{display:grid;grid-template-columns:1fr 1.5fr;height:100%;}
-.svbig{font-family:'Barlow',sans-serif;font-weight:900;font-size:clamp(3rem,6.5vw,7.5rem);line-height:.88;text-transform:uppercase;}
+/* SERVICES */
+.svl{display:grid;grid-template-columns:1fr 1.5fr;height:100%;padding-top:80px;}
+.svbig{font-family:'Barlow',sans-serif;font-weight:900;font-size:clamp(3.5rem,7vw,8rem);line-height:.88;text-transform:uppercase;}
 .svbig .w{color:#fff;}.svbig .r{background:linear-gradient(135deg,#f857a6,#c850f5,#4facfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}.svbig .g{-webkit-text-stroke:1px rgba(255,255,255,.1);color:transparent;display:block;}
-.svs{font-size:.82rem;color:rgba(255,255,255,.35);line-height:1.8;max-width:30ch;margin-top:1.1rem;font-weight:300;}
+.svs{font-size:.85rem;color:rgba(255,255,255,.35);line-height:1.85;max-width:32ch;margin-top:1.2rem;font-weight:300;}
 .srl{display:flex;flex-direction:column;justify-content:center;gap:0;}
-.sr{display:grid;grid-template-columns:2.2rem 1fr auto;align-items:center;gap:1.1rem;padding:1.1rem 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:default;}
-.sr:first-child{border-top:1px solid rgba(255,255,255,.04);}
+.sr{display:grid;grid-template-columns:2.5rem 1fr auto;align-items:center;gap:1.2rem;padding:1.2rem 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:default;}
+.sr:first-child{border-top:1px solid rgba(255,255,255,.05);}
 .sr:hover .srn{color:#c850f5;}.sr:hover .sra{color:#c850f5;transform:translate(3px,-3px);}
-.srnum{font-family:'Barlow',sans-serif;font-weight:900;font-size:.95rem;color:rgba(255,255,255,.15);}
-.srn{font-weight:600;font-size:.88rem;text-transform:uppercase;letter-spacing:.07em;color:#fff;transition:color .3s;}
-.srt{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.05em;color:rgba(255,255,255,.2);margin-top:.12rem;}
-.sra{color:rgba(255,255,255,.2);font-size:.88rem;transition:color .3s,transform .3s;}
+.srnum{font-family:'Barlow',sans-serif;font-weight:900;font-size:1rem;color:rgba(255,255,255,.15);}
+.srn{font-weight:600;font-size:.9rem;text-transform:uppercase;letter-spacing:.07em;color:#fff;transition:color .3s;}
+.srt{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:.05em;color:rgba(255,255,255,.2);margin-top:.14rem;}
+.sra{color:rgba(255,255,255,.2);font-size:.9rem;transition:color .3s,transform .3s;}
 
-.ctl{display:grid;grid-template-columns:1fr 1fr;height:100%;}
-.ctbig{font-family:'Barlow',sans-serif;font-weight:900;font-size:clamp(3rem,6.5vw,8.5rem);line-height:.88;text-transform:uppercase;}
+/* CONTACT */
+.ctl{display:grid;grid-template-columns:1fr 1fr;height:100%;padding-top:80px;}
+.ctbig{font-family:'Barlow',sans-serif;font-weight:900;font-size:clamp(3.5rem,7vw,9.5rem);line-height:.87;text-transform:uppercase;}
 .ctbig .g{-webkit-text-stroke:1px rgba(255,255,255,.07);color:transparent;display:block;}
 .ctbig .w{color:#fff;display:block;}
 .ctbig .r{background:linear-gradient(135deg,#f857a6,#c850f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;}
-.ctsub{font-size:.82rem;color:rgba(255,255,255,.35);max-width:36ch;line-height:1.8;margin-top:1.1rem;font-weight:300;}
+.ctsub{font-size:.85rem;color:rgba(255,255,255,.35);max-width:38ch;line-height:1.85;margin-top:1.2rem;font-weight:300;}
 .crl{display:flex;flex-direction:column;justify-content:center;gap:2px;}
-.cr{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border:1px solid rgba(255,255,255,.04);text-decoration:none;cursor:none;transition:background .3s,border-color .3s;}
+.cr{display:flex;align-items:center;justify-content:space-between;padding:1.15rem 1.5rem;border:1px solid rgba(255,255,255,.05);text-decoration:none;cursor:none;transition:background .3s,border-color .3s;}
 .cr:hover{background:rgba(200,80,245,.05);border-color:rgba(200,80,245,.3);}
 .cr:hover .cra{color:#c850f5;transform:translate(3px,-3px);}
-.crl2{font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:#fff;}
-.crv{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-top:.15rem;}
+.crl2{font-weight:600;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:#fff;}
+.crv{font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-top:.16rem;}
 .cra{color:rgba(255,255,255,.2);font-size:.9rem;transition:color .3s,transform .3s;}
 
 /* 3D MODAL */
 .mm{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.96);backdrop-filter:blur(28px);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;}
 .mm.open{opacity:1;pointer-events:all;}
-.mmw{width:min(82vw,900px);height:min(62vh,570px);position:relative;border:1px solid rgba(200,80,245,.12);border-radius:6px;overflow:hidden;box-shadow:0 0 60px rgba(200,80,245,.08);}
+.mmw{width:min(85vw,920px);height:min(65vh,580px);position:relative;border:1px solid rgba(200,80,245,.12);border-radius:6px;overflow:hidden;box-shadow:0 0 60px rgba(200,80,245,.08);}
 #mmc{width:100%;height:100%;display:block;}
-.mmld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:.2em;color:#c850f5;text-transform:uppercase;animation:pulse 1.4s ease infinite;}
+.mmld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.2em;color:#c850f5;text-transform:uppercase;animation:pulse 1.4s ease infinite;}
 @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 .mmi{text-align:center;margin-top:1.2rem;}
-.mmt{font-family:'Barlow',sans-serif;font-weight:900;font-size:1.7rem;color:#fff;}
-.mmh{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.16em;color:rgba(255,255,255,.2);text-transform:uppercase;margin-top:.3rem;}
-.mmcl{position:absolute;top:1.4rem;right:1.4rem;font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.35);background:none;border:1px solid rgba(255,255,255,.1);padding:.42rem .88rem;cursor:none;transition:color .3s,border-color .3s;}
+.mmt{font-family:'Barlow',sans-serif;font-weight:900;font-size:1.8rem;color:#fff;}
+.mmh{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:.16em;color:rgba(255,255,255,.2);text-transform:uppercase;margin-top:.35rem;}
+.mmcl{position:absolute;top:1.4rem;right:1.4rem;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.35);background:none;border:1px solid rgba(255,255,255,.1);padding:.44rem .9rem;cursor:none;transition:color .3s,border-color .3s;}
 .mmcl:hover{color:#fff;border-color:rgba(200,80,245,.5);}
 
 [data-a]{opacity:0;transform:translateY(18px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1);}
@@ -162,11 +155,11 @@ body{font-family:'Barlow',sans-serif;display:flex;align-items:center;justify-con
 [data-d1]{transition-delay:.08s;}[data-d2]{transition-delay:.16s;}[data-d3]{transition-delay:.24s;}
 [data-d4]{transition-delay:.32s;}[data-d5]{transition-delay:.4s;}[data-d6]{transition-delay:.48s;}
 
-.loader{position:fixed;inset:0;z-index:1000;background:#0a0a0a;display:flex;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s;}
+.loader{position:fixed;inset:0;z-index:1000;background:#030303;display:flex;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s;}
 .loader.gone{opacity:0;visibility:hidden;}
-.ldl{font-family:'Barlow',sans-serif;font-weight:900;font-size:2.6rem;letter-spacing:.3em;color:#fff;text-align:center;}
+.ldl{font-family:'Barlow',sans-serif;font-weight:900;font-size:2.8rem;letter-spacing:.3em;color:#fff;text-align:center;}
 .ldl span{background:linear-gradient(135deg,#f857a6,#c850f5,#4facfe,#00f2fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.ldb{width:160px;height:1px;background:rgba(255,255,255,.07);margin:.8rem auto 0;overflow:hidden;border-radius:1px;}
+.ldb{width:180px;height:1px;background:rgba(255,255,255,.07);margin:.9rem auto 0;overflow:hidden;}
 .ldb::after{content:'';display:block;height:100%;background:linear-gradient(90deg,#f857a6,#c850f5,#4facfe);animation:lb 1.5s ease forwards;}
 @keyframes lb{from{width:0}to{width:100%}}
 </style>
@@ -176,109 +169,141 @@ body{font-family:'Barlow',sans-serif;display:flex;align-items:center;justify-con
 <div id="cur-dot"></div>
 <div id="cur-ring"></div>
 
-<div class="device" id="dev">
-  <div class="nav">
-    <a href="#" class="nav-logo"><div class="nav-logo-icon"></div>Raja Kannan</a>
-    <div class="nav-links">
-      <a href="#" class="on" id="nl0" onclick="goTo(0);return false;">Home</a>
-      <a href="#" id="nl2" onclick="goTo(2);return false;">Portfolio</a>
-      <a href="#" id="nl4" onclick="goTo(4);return false;">Contact Us</a>
-    </div>
+<!-- HELIX CANVAS — fixed fullscreen behind everything -->
+<canvas id="helix-c"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo"><div class="nav-logo-icon"></div>Raja Kannan</a>
+  <div class="nav-links">
+    <a href="#" class="on" id="nl0" onclick="goTo(0);return false;">Home</a>
+    <a href="#" id="nl2" onclick="goTo(2);return false;">Portfolio</a>
+    <a href="#" id="nl4" onclick="goTo(4);return false;">Contact Us</a>
   </div>
+</nav>
 
-  <div class="hero-text" id="htxt">
-    <div class="ht"><span>Explore</span></div>
-    <div class="ht"><span>New</span></div>
-    <div class="ht"><span>Ideas.</span></div>
-  </div>
-
-  <canvas id="ribbon-c"></canvas>
-
-  <div class="bl" id="hbl"><div class="bl-small">Let's Build the<br>Future of</div><div class="bl-bold">Design.</div></div>
-  <div class="explore-row" id="hexp"><div class="explore-line"></div><a href="#" class="explore-btn" onclick="goTo(2);return false;">Explore Now</a><div class="explore-line"></div></div>
-  <div class="ghost-num" id="gnum">07</div>
-
-  <div class="r-ctrl">
-    <div class="arr-row"><button class="arr" onclick="goTo(Math.max(current-1,0))">←</button><button class="arr" onclick="goTo(Math.min(current+1,4))">→</button></div>
-    <div class="dot on" onclick="goTo(0)"></div>
-    <div class="dot" onclick="goTo(1)"></div>
-    <div class="dot" onclick="goTo(2)"></div>
-    <div class="dot" onclick="goTo(3)"></div>
-    <div class="dot" onclick="goTo(4)"></div>
-  </div>
-
-  <div class="panels">
-    <div class="panel" id="p1">
-      <div class="p2">
-        <div class="pp pbr">
-          <div class="slbl" data-a data-d1>01 — About</div>
-          <div class="sh" data-a data-d2>The<br><span class="g">Discipline</span></div>
-          <p class="sb2" data-a data-d3>I am a <strong>Creative Technologist, Motion Designer, and Studio Founder</strong> with 7+ years experience at the intersection of design, technology, and production.</p>
-          <p class="sb2" style="margin-top:.7rem;" data-a data-d4>From <strong>After Effects to Unreal Engine</strong>, Cinema 4D to <strong>ComfyUI AI pipelines</strong> — I build scalable content workflows.</p>
-          <div class="sts" data-a data-d5><div><div class="stn">7<span>+</span></div><div class="stl">Years</div></div><div><div class="stn">5<span>+</span></div><div class="stl">Disciplines</div></div><div><div class="stn">2</div><div class="stl">Studios</div></div></div>
-        </div>
-        <div class="pp sk-list">
-          <div class="sk" data-a data-d1><div><div class="sk-n">Motion Design</div><div class="sk-t">After Effects · Cinema 4D</div></div><div class="sk-num">01</div></div>
-          <div class="sk" data-a data-d2><div><div class="sk-n">Real-Time 3D</div><div class="sk-t">Unreal Engine · ArchViz</div></div><div class="sk-num">02</div></div>
-          <div class="sk" data-a data-d3><div><div class="sk-n">AI Pipelines</div><div class="sk-t">ComfyUI · Stable Diffusion</div></div><div class="sk-num">03</div></div>
-          <div class="sk" data-a data-d4><div><div class="sk-n">Photography</div><div class="sk-t">Fashion · Baby · Maternity</div></div><div class="sk-num">04</div></div>
-          <div class="sk" data-a data-d5><div><div class="sk-n">Pipeline Architecture</div><div class="sk-t">Workflow · Automation</div></div><div class="sk-num">05</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="panel" id="p2">
-      <div class="wl">
-        <div class="wh"><div><div class="slbl" data-a>02 — Works</div><div class="sh" style="font-size:clamp(1.8rem,3.2vw,3.2rem);margin:0;" data-a data-d1>Selected Projects</div></div><a href="work.html" style="font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.15em;color:rgba(255,255,255,.28);text-decoration:none;text-transform:uppercase;border:1px solid rgba(255,255,255,.06);padding:.4rem .9rem;transition:all .3s;" onmouseover="this.style.color='#fff';this.style.borderColor='rgba(200,80,245,.45)'" onmouseout="this.style.color='rgba(255,255,255,.28)';this.style.borderColor='rgba(255,255,255,.06)'">Full Gallery ↗</a></div>
-        <div class="wg">
-          <div class="wc big" data-a data-d2 data-type="3d" data-title="Orbital Motion System" onclick="open3D(this)">
-            <div class="wcb" style="background:radial-gradient(ellipse 70% 80% at 42% 52%,rgba(200,80,245,.08),transparent 65%),#0a0a0a;"><svg width="180" height="180" viewBox="0 0 220 220" fill="none"><circle cx="110" cy="110" r="75" stroke="rgba(200,80,245,.14)" stroke-width="1"/><ellipse cx="110" cy="110" rx="95" ry="35" stroke="rgba(248,87,166,.1)" stroke-width=".8" transform="rotate(-30 110 110)"/><circle cx="110" cy="38" r="5" fill="rgba(200,80,245,.8)"/><circle cx="110" cy="110" r="8" fill="rgba(200,80,245,.9)"/></svg></div>
-            <div class="wcbadge">◈ 3D Interactive</div>
-            <div class="wco"><div class="wcc">Motion Graphics · C4D</div><div class="wct">Orbital Motion System</div><div class="wcd">Click — drag to rotate · scroll to zoom</div></div>
-            <div class="wcl"></div>
-          </div>
-          <div class="wc" data-a data-d3>
-            <div class="wcb" style="background:radial-gradient(ellipse at 55% 55%,rgba(79,172,254,.08),transparent 60%),#0a0a0a;"><svg width="90" height="90" viewBox="0 0 110 110" fill="none"><path d="M55 10 L98 35 L98 80 L55 100 L12 80 L12 35 Z" stroke="rgba(79,172,254,.32)" stroke-width="1" fill="rgba(79,172,254,.04)"/><circle cx="55" cy="55" r="5" fill="rgba(79,172,254,.9)"/></svg></div>
-            <div class="wco"><div class="wcc">Unreal Engine</div><div class="wct">Real-Time Environment</div></div>
-            <div class="wcl"></div>
-          </div>
-          <div class="wc" data-a data-d4 data-type="3d" data-title="AI Pipeline Model" onclick="open3D(this)">
-            <div class="wcb" style="background:radial-gradient(ellipse at 45% 50%,rgba(248,87,166,.07),transparent 55%),#0a0a0a;"><svg width="90" height="80" viewBox="0 0 110 95" fill="none"><circle cx="20" cy="47" r="8" stroke="rgba(248,87,166,.5)" stroke-width="1" fill="rgba(248,87,166,.06)"/><circle cx="55" cy="28" r="9" stroke="rgba(200,80,245,.6)" stroke-width="1"/><circle cx="55" cy="66" r="9" stroke="rgba(79,172,254,.5)" stroke-width="1"/><circle cx="90" cy="47" r="10" stroke="rgba(248,87,166,.7)" stroke-width="1" fill="rgba(248,87,166,.1)"/><line x1="28" y1="47" x2="46" y2="28" stroke="rgba(200,80,245,.3)" stroke-width=".8"/><line x1="64" y1="28" x2="80" y2="47" stroke="rgba(200,80,245,.3)" stroke-width=".8"/><circle cx="90" cy="47" r="4" fill="rgba(248,87,166,1)"/></svg></div>
-            <div class="wcbadge">◈ 3D Interactive</div>
-            <div class="wco"><div class="wcc">ComfyUI · AI Workflow</div><div class="wct">AI Gen Pipeline</div></div>
-            <div class="wcl"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="panel" id="p3">
-      <div class="svl">
-        <div class="pp pbr"><div class="slbl" data-a>03 — Services</div><div class="svbig" data-a data-d1><span class="w">What</span><span class="r">I</span><span class="g">Build.</span></div><p class="svs" data-a data-d2>Motion · 3D · AI pipelines · Virtual Production — every discipline in one integrated workflow.</p></div>
-        <div class="pp srl">
-          <div class="sr" data-a data-d1><div class="srnum">01</div><div><div class="srn">Motion Graphics</div><div class="srt">After Effects · Cinema 4D · Brand</div></div><div class="sra">↗</div></div>
-          <div class="sr" data-a data-d2><div class="srnum">02</div><div><div class="srn">Unreal & Virtual Production</div><div class="srt">Real-Time 3D · ArchViz · LED Volume</div></div><div class="sra">↗</div></div>
-          <div class="sr" data-a data-d3><div class="srnum">03</div><div><div class="srn">AI Content Pipelines</div><div class="srt">ComfyUI · Stable Diffusion · Auto</div></div><div class="sra">↗</div></div>
-          <div class="sr" data-a data-d4><div class="srnum">04</div><div><div class="srn">Photography & Studio</div><div class="srt">Fashion · Baby · Maternity · Backdrops</div></div><div class="sra">↗</div></div>
-          <div class="sr" data-a data-d5><div class="srnum">05</div><div><div class="srn">Pipeline Consulting</div><div class="srt">Architecture · Automation · Systems</div></div><div class="sra">↗</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="panel" id="p4">
-      <div class="ctl">
-        <div class="pp"><div class="slbl" data-a>04 — Contact</div><div class="ctbig" data-a data-d1><span class="g">Let's</span><span class="w">Build</span><span class="r">Together.</span></div><p class="ctsub" data-a data-d3>Motion design, AI pipelines, virtual production, studio bookings in Chennai.</p></div>
-        <div class="pp crl">
-          <a href="mailto:raja@rajakannan.com" class="cr" data-a data-d2><div><div class="crl2">Email</div><div class="crv">raja@rajakannan.com</div></div><div class="cra">↗</div></a>
-          <a href="https://wa.me/91XXXXXXXXXX" class="cr" data-a data-d3><div><div class="crl2">WhatsApp</div><div class="crv">+91 · Chat directly</div></div><div class="cra">↗</div></a>
-          <a href="https://instagram.com/magizhstudio" class="cr" data-a data-d4><div><div class="crl2">Instagram</div><div class="crv">@magizhstudio</div></div><div class="cra">↗</div></a>
-          <a href="https://behance.net" class="cr" data-a data-d5><div><div class="crl2">Behance</div><div class="crv">behance.net/raja</div></div><div class="cra">↗</div></a>
-          <a href="tel:+91XXXXXXXXXX" class="cr" data-a data-d6><div><div class="crl2">Studio — Chennai</div><div class="crv">Available for bookings</div></div><div class="cra">↗</div></a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="sbar"><div class="si"><div class="si-dot"></div><span id="dsec">Home</span></div><div class="si">Chennai · India</div><div class="si">Magizh Studio</div><div class="si si-r" id="dtime"></div></div>
+<!-- HERO TEXT -->
+<div class="hero" id="htxt">
+  <div class="ht"><span>Explore</span></div>
+  <div class="ht"><span>New</span></div>
+  <div class="ht"><span>Ideas.</span></div>
 </div>
 
+<!-- BOTTOM LEFT -->
+<div class="bl" id="hbl">
+  <div class="bl-small">Let's Build the<br>Future of</div>
+  <div class="bl-bold">Design.</div>
+</div>
+
+<!-- EXPLORE -->
+<div class="explore-row" id="hexp">
+  <div class="explore-line"></div>
+  <a href="#" class="explore-btn" onclick="goTo(2);return false;">Explore Now</a>
+  <div class="explore-line"></div>
+</div>
+
+<!-- GHOST NUMBER -->
+<div class="ghost-num" id="gnum">07</div>
+
+<!-- RIGHT CONTROLS -->
+<div class="r-ctrl" style="z-index:50;">
+  <div class="arr-row">
+    <button class="arr" onclick="goTo(Math.max(current-1,0))">←</button>
+    <button class="arr" onclick="goTo(Math.min(current+1,4))">→</button>
+  </div>
+  <div class="dot on" onclick="goTo(0)"></div>
+  <div class="dot" onclick="goTo(1)"></div>
+  <div class="dot" onclick="goTo(2)"></div>
+  <div class="dot" onclick="goTo(3)"></div>
+  <div class="dot" onclick="goTo(4)"></div>
+</div>
+
+<!-- PANELS -->
+<div class="panels">
+  <div class="panel" id="p1">
+    <div class="p2">
+      <div class="pp pbr">
+        <div class="slbl" data-a data-d1>01 — About</div>
+        <div class="sh" data-a data-d2>The<br><span class="g">Discipline</span></div>
+        <p class="sb2" data-a data-d3>I am a <strong>Creative Technologist, Motion Designer, and Studio Founder</strong> with 7+ years experience at the intersection of design, technology, and production.</p>
+        <p class="sb2" style="margin-top:.8rem;" data-a data-d4>From <strong>After Effects to Unreal Engine</strong>, Cinema 4D to <strong>ComfyUI AI pipelines</strong> — I build scalable content workflows.</p>
+        <div class="sts" data-a data-d5>
+          <div><div class="stn">7<span>+</span></div><div class="stl">Years</div></div>
+          <div><div class="stn">5<span>+</span></div><div class="stl">Disciplines</div></div>
+          <div><div class="stn">2</div><div class="stl">Studios</div></div>
+        </div>
+      </div>
+      <div class="pp sk-list">
+        <div class="sk" data-a data-d1><div><div class="sk-n">Motion Design</div><div class="sk-t">After Effects · Cinema 4D</div></div><div class="sk-num">01</div></div>
+        <div class="sk" data-a data-d2><div><div class="sk-n">Real-Time 3D</div><div class="sk-t">Unreal Engine · ArchViz</div></div><div class="sk-num">02</div></div>
+        <div class="sk" data-a data-d3><div><div class="sk-n">AI Pipelines</div><div class="sk-t">ComfyUI · Stable Diffusion</div></div><div class="sk-num">03</div></div>
+        <div class="sk" data-a data-d4><div><div class="sk-n">Photography</div><div class="sk-t">Fashion · Baby · Maternity</div></div><div class="sk-num">04</div></div>
+        <div class="sk" data-a data-d5><div><div class="sk-n">Pipeline Architecture</div><div class="sk-t">Workflow · Automation</div></div><div class="sk-num">05</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p2">
+    <div class="wl">
+      <div class="wh">
+        <div><div class="slbl" data-a>02 — Works</div><div class="sh" style="font-size:clamp(2rem,3.5vw,3.8rem);margin:0;" data-a data-d1>Selected Projects</div></div>
+        <a href="work.html" style="font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.15em;color:rgba(255,255,255,.28);text-decoration:none;text-transform:uppercase;border:1px solid rgba(255,255,255,.07);padding:.42rem .95rem;transition:all .3s;" onmouseover="this.style.color='#fff';this.style.borderColor='rgba(200,80,245,.5)'" onmouseout="this.style.color='rgba(255,255,255,.28)';this.style.borderColor='rgba(255,255,255,.07)'">Full Gallery ↗</a>
+      </div>
+      <div class="wg">
+        <div class="wc big" data-a data-d2 onclick="open3D(this)" style="cursor:none;" data-title="Orbital Motion System">
+          <div class="wcb" style="background:radial-gradient(ellipse 70% 80% at 42% 52%,rgba(200,80,245,.08),transparent 65%),#0a0a0a;">
+            <svg width="180" height="180" viewBox="0 0 220 220" fill="none"><circle cx="110" cy="110" r="75" stroke="rgba(200,80,245,.14)" stroke-width="1"/><ellipse cx="110" cy="110" rx="95" ry="35" stroke="rgba(248,87,166,.1)" stroke-width=".8" transform="rotate(-30 110 110)"/><circle cx="110" cy="38" r="5" fill="rgba(200,80,245,.8)"/><circle cx="110" cy="110" r="8" fill="rgba(200,80,245,.9)"/></svg>
+          </div>
+          <div class="wcbadge">◈ 3D Interactive</div>
+          <div class="wco"><div class="wcc">Motion Graphics · C4D</div><div class="wct">Orbital Motion System</div><div class="wcd">Click — drag to rotate · scroll to zoom</div></div>
+          <div class="wcl"></div>
+        </div>
+        <div class="wc" data-a data-d3>
+          <div class="wcb" style="background:radial-gradient(ellipse at 55% 55%,rgba(79,172,254,.08),transparent 60%),#0a0a0a;"><svg width="90" height="90" viewBox="0 0 110 110" fill="none"><path d="M55 10 L98 35 L98 80 L55 100 L12 80 L12 35 Z" stroke="rgba(79,172,254,.32)" stroke-width="1" fill="rgba(79,172,254,.04)"/><circle cx="55" cy="55" r="5" fill="rgba(79,172,254,.9)"/></svg></div>
+          <div class="wco"><div class="wcc">Unreal Engine</div><div class="wct">Real-Time Environment</div></div>
+          <div class="wcl"></div>
+        </div>
+        <div class="wc" data-a data-d4 onclick="open3D(this)" style="cursor:none;" data-title="AI Pipeline Model">
+          <div class="wcb" style="background:radial-gradient(ellipse at 45% 50%,rgba(248,87,166,.07),transparent 55%),#0a0a0a;"><svg width="90" height="80" viewBox="0 0 110 95" fill="none"><circle cx="20" cy="47" r="8" stroke="rgba(248,87,166,.5)" stroke-width="1" fill="rgba(248,87,166,.06)"/><circle cx="55" cy="28" r="9" stroke="rgba(200,80,245,.6)" stroke-width="1"/><circle cx="55" cy="66" r="9" stroke="rgba(79,172,254,.5)" stroke-width="1"/><circle cx="90" cy="47" r="10" stroke="rgba(248,87,166,.7)" stroke-width="1" fill="rgba(248,87,166,.1)"/><line x1="28" y1="47" x2="46" y2="28" stroke="rgba(200,80,245,.3)" stroke-width=".8"/><line x1="64" y1="28" x2="80" y2="47" stroke="rgba(200,80,245,.3)" stroke-width=".8"/><circle cx="90" cy="47" r="4" fill="rgba(248,87,166,1)"/></svg></div>
+          <div class="wcbadge">◈ 3D Interactive</div>
+          <div class="wco"><div class="wcc">ComfyUI · AI Workflow</div><div class="wct">AI Gen Pipeline</div></div>
+          <div class="wcl"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p3">
+    <div class="svl">
+      <div class="pp pbr"><div class="slbl" data-a>03 — Services</div><div class="svbig" data-a data-d1><span class="w">What</span><span class="r">I</span><span class="g">Build.</span></div><p class="svs" data-a data-d2>Motion · 3D · AI pipelines · Virtual Production — every discipline in one integrated workflow.</p></div>
+      <div class="pp srl">
+        <div class="sr" data-a data-d1><div class="srnum">01</div><div><div class="srn">Motion Graphics</div><div class="srt">After Effects · Cinema 4D · Brand</div></div><div class="sra">↗</div></div>
+        <div class="sr" data-a data-d2><div class="srnum">02</div><div><div class="srn">Unreal & Virtual Production</div><div class="srt">Real-Time 3D · ArchViz · LED Volume</div></div><div class="sra">↗</div></div>
+        <div class="sr" data-a data-d3><div class="srnum">03</div><div><div class="srn">AI Content Pipelines</div><div class="srt">ComfyUI · Stable Diffusion · Auto</div></div><div class="sra">↗</div></div>
+        <div class="sr" data-a data-d4><div class="srnum">04</div><div><div class="srn">Photography & Studio</div><div class="srt">Fashion · Baby · Maternity · Backdrops</div></div><div class="sra">↗</div></div>
+        <div class="sr" data-a data-d5><div class="srnum">05</div><div><div class="srn">Pipeline Consulting</div><div class="srt">Architecture · Automation · Systems</div></div><div class="sra">↗</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p4">
+    <div class="ctl">
+      <div class="pp"><div class="slbl" data-a>04 — Contact</div><div class="ctbig" data-a data-d1><span class="g">Let's</span><span class="w">Build</span><span class="r">Together.</span></div><p class="ctsub" data-a data-d3>Motion design, AI pipelines, virtual production, studio bookings in Chennai.</p></div>
+      <div class="pp crl">
+        <a href="mailto:raja@rajakannan.com" class="cr" data-a data-d2><div><div class="crl2">Email</div><div class="crv">raja@rajakannan.com</div></div><div class="cra">↗</div></a>
+        <a href="https://wa.me/91XXXXXXXXXX" class="cr" data-a data-d3><div><div class="crl2">WhatsApp</div><div class="crv">+91 · Chat directly</div></div><div class="cra">↗</div></a>
+        <a href="https://instagram.com/magizhstudio" class="cr" data-a data-d4><div><div class="crl2">Instagram</div><div class="crv">@magizhstudio</div></div><div class="cra">↗</div></a>
+        <a href="https://behance.net" class="cr" data-a data-d5><div><div class="crl2">Behance</div><div class="crv">behance.net/raja</div></div><div class="cra">↗</div></a>
+        <a href="tel:+91XXXXXXXXXX" class="cr" data-a data-d6><div><div class="crl2">Studio — Chennai</div><div class="crv">Available for bookings</div></div><div class="cra">↗</div></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="sbar"><div class="si"><div class="si-dot"></div><span id="dsec">Home</span></div><div class="si">Chennai · India</div><div class="si">Magizh Studio</div><div class="si si-r" id="dtime"></div></div>
+
+<!-- 3D MODAL -->
 <div class="mm" id="mm">
   <button class="mmcl" id="mmcl">✕ Close</button>
   <div class="mmw"><canvas id="mmc"></canvas><div class="mmld" id="mmld">Loading Model...</div></div>
@@ -299,20 +324,20 @@ document.addEventListener("mousemove",e=>{mx=e.clientX;my=e.clientY;cd.style.lef
 (function ar(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;cr.style.left=rx+"px";cr.style.top=ry+"px";requestAnimationFrame(ar);})();
 document.querySelectorAll("a,button,.wc,.sk,.sr,.cr,.dot,.arr").forEach(el=>{
   el.addEventListener("mouseenter",()=>{cr.style.width="52px";cr.style.height="52px";cr.style.borderColor="rgba(248,87,166,.8)";});
-  el.addEventListener("mouseleave",()=>{cr.style.width="38px";cr.style.height="38px";cr.style.borderColor="rgba(248,87,166,.6)";});
+  el.addEventListener("mouseleave",()=>{cr.style.width="38px";cr.style.height="38px";cr.style.borderColor="rgba(248,87,166,.55)";});
 });
 
 // CLOCK
 (function t(){document.getElementById("dtime").textContent=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:true});setTimeout(t,1000);})();
 
-// NAV
+// NAVIGATION
 const pids=[null,"p1","p2","p3","p4"],snames=["Home","About","Works","Services","Contact"],nums=["07","01","02","03","04"];
 let current=0,busy=false;
 const hels=["htxt","hbl","hexp","gnum"];
 function goTo(i){
   if(i===current||busy)return;busy=true;
   const toH=i===0;
-  hels.forEach(id=>{const e=document.getElementById(id);e.style.opacity=toH?"1":"0";e.style.pointerEvents=toH?"all":"none";});
+  hels.forEach(id=>{const e=document.getElementById(id);if(e){e.style.opacity=toH?"1":"0";e.style.pointerEvents=toH?"all":"none";}});
   if(pids[current]){const o=document.getElementById(pids[current]);o&&o.classList.remove("on");}
   if(pids[i]){const p=document.getElementById(pids[i]);if(p){p.classList.add("on");setTimeout(()=>p.querySelectorAll("[data-a]").forEach(e=>e.classList.add("in")),80);}}
   else document.querySelectorAll("[data-a]").forEach(e=>e.classList.remove("in"));
@@ -325,273 +350,261 @@ function goTo(i){
 hels.forEach(id=>{const e=document.getElementById(id);if(e)e.style.transition="opacity .4s ease";});
 document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key==="ArrowDown")goTo(Math.min(current+1,4));if(e.key==="ArrowLeft"||e.key==="ArrowUp")goTo(Math.max(current-1,0));if(e.key==="Escape")goTo(0);});
 let wl=false;document.addEventListener("wheel",e=>{if(wl)return;wl=true;if(e.deltaY>0)goTo(Math.min(current+1,4));else goTo(Math.max(current-1,0));setTimeout(()=>wl=false,900);},{passive:true});
-let ts2=0;document.addEventListener("touchstart",e=>ts2=e.touches[0].clientX,{passive:true});document.addEventListener("touchend",e=>{const d=ts2-e.changedTouches[0].clientX;if(Math.abs(d)>50){if(d>0)goTo(Math.min(current+1,4));else goTo(Math.max(current-1,0));}},{passive:true});
+let ts=0;document.addEventListener("touchstart",e=>ts=e.touches[0].clientX,{passive:true});document.addEventListener("touchend",e=>{const d=ts-e.changedTouches[0].clientX;if(Math.abs(d)>50){if(d>0)goTo(Math.min(current+1,4));else goTo(Math.max(current-1,0));}},{passive:true});
 
 // ─────────────────────────────────────────────────────────────
-// HERO: Load spline.glb + apply HOLOGRAPHIC IRIDESCENT SHADER
+// DNA DOUBLE HELIX — FULL SCREEN HOLOGRAPHIC
+// Two intertwined spiral strands + connecting rungs
+// Full iridescent rainbow shader
 // ─────────────────────────────────────────────────────────────
 (function(){
-  const canvas=document.getElementById("ribbon-c");
-  const dev=document.getElementById("dev");
-  canvas.style.cssText="position:absolute;inset:0;z-index:2;width:100%!important;height:100%!important;pointer-events:none;";
-  const W=()=>dev.clientWidth,H=()=>dev.clientHeight;
-
+  const canvas=document.getElementById("helix-c");
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(W(),H());
+  renderer.setSize(innerWidth,innerHeight);
   renderer.setClearColor(0x000000,0);
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.8;
-  renderer.shadowMap.enabled=true;
+  renderer.toneMappingExposure=1.9;
 
   const scene=new THREE.Scene();
-  const cam=new THREE.PerspectiveCamera(45,W()/H(),.1,200);
-  cam.position.set(0,0,10);
+  const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);
+  cam.position.set(0,0,14);
 
-  // ── IRIDESCENT VERTEX+FRAGMENT SHADER
-  const iriMat=new THREE.ShaderMaterial({
-    uniforms:{
-      uTime:{value:0},
-      uMouse:{value:new THREE.Vector2(0,0)},
-      uIntensity:{value:1.0},
-      uSpeed:{value:0.18},
-      uShininess:{value:1.4},
-    },
-    vertexShader:`
-      varying vec3 vNormal;
-      varying vec3 vWorldPos;
-      varying vec3 vViewDir;
-      varying vec2 vUv;
-      void main(){
-        vNormal=normalize(normalMatrix*normal);
-        vec4 worldPos=modelMatrix*vec4(position,1.0);
-        vWorldPos=worldPos.xyz;
-        vUv=uv;
-        vec4 mvPos=modelViewMatrix*vec4(position,1.0);
-        vViewDir=normalize(-mvPos.xyz);
-        gl_Position=projectionMatrix*mvPos;
-      }
-    `,
-    fragmentShader:`
-      varying vec3 vNormal;
-      varying vec3 vWorldPos;
-      varying vec3 vViewDir;
-      varying vec2 vUv;
-      uniform float uTime;
-      uniform vec2 uMouse;
-      uniform float uIntensity;
-      uniform float uSpeed;
-      uniform float uShininess;
+  // ── IRIDESCENT SHADER — maximum holographic
+  const iriVert=`
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+    varying vec3 vViewDir;
+    varying vec2 vUv;
+    void main(){
+      vNormal=normalize(normalMatrix*normal);
+      vec4 wp=modelMatrix*vec4(position,1.0);
+      vWorldPos=wp.xyz;
+      vUv=uv;
+      vec4 mvp=modelViewMatrix*vec4(position,1.0);
+      vViewDir=normalize(-mvp.xyz);
+      gl_Position=projectionMatrix*mvp;
+    }
+  `;
+  const iriFrag=`
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+    varying vec3 vViewDir;
+    varying vec2 vUv;
+    uniform float uTime;
+    uniform vec2 uMouse;
+    uniform float uHueOffset;
 
-      vec3 hsl2rgb(float h,float s,float l){
-        vec3 rgb=clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.);
-        return l+s*(rgb-.5)*(1.-abs(2.*l-1.));
-      }
+    vec3 hsl2rgb(float h,float s,float l){
+      vec3 rgb=clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.);
+      return l+s*(rgb-.5)*(1.-abs(2.*l-1.));
+    }
+    void main(){
+      float NdV=max(dot(vNormal,vViewDir),0.0);
+      float fresnel=pow(1.0-NdV,2.0);
+      float fresnelSharp=pow(1.0-NdV,4.5);
 
-      void main(){
-        // Fresnel — strong at edges, weak at center
-        float NdotV=max(dot(vNormal,vViewDir),0.0);
-        float fresnel=pow(1.0-NdotV,2.2);
-        float fresnelSharp=pow(1.0-NdotV,4.0);
+      // Rich multi-layer hue
+      float h1=dot(vNormal,vec3(1.,0.5,0.2))*0.6+vWorldPos.y*0.06+uTime*0.2+uHueOffset+uMouse.x*0.25;
+      float h2=dot(vNormal,vec3(0.2,0.8,0.4))*0.5+vWorldPos.x*0.05-uTime*0.15+uMouse.y*0.2;
+      float h3=vUv.y*0.5+uTime*0.1+uHueOffset*0.5;
+      float hue=mix(h1,h2,fresnel*0.55)+h3*0.12;
 
-        // Multi-layered hue calculation for rich iridescence
-        float hue1=dot(vNormal,vec3(1.0,0.5,0.2))*0.5
-                  +vWorldPos.y*0.04
-                  +vWorldPos.x*0.03
-                  +uTime*uSpeed
-                  +uMouse.x*0.2;
+      // Core colors
+      vec3 c1=hsl2rgb(mod(hue,1.),1.0,0.58);
+      vec3 c2=hsl2rgb(mod(hue+0.35,1.),1.0,0.65);
+      vec3 iri=mix(c1,c2,fresnelSharp);
 
-        float hue2=dot(vNormal,vec3(0.3,0.8,0.5))*0.4
-                  +vWorldPos.z*0.05
-                  -uTime*uSpeed*0.7
-                  +uMouse.y*0.15;
+      // Triple specular — white hot, rainbow tinted
+      vec3 ld1=normalize(vec3(3.,4.,5.));
+      vec3 ld2=normalize(vec3(-4.,-1.,4.));
+      vec3 ld3=normalize(vec3(0.,5.,-3.));
+      float s1=pow(max(dot(reflect(-vViewDir,vNormal),ld1),0.),80.)*2.2;
+      float s2=pow(max(dot(reflect(-vViewDir,vNormal),ld2),0.),40.)*1.2;
+      float s3=pow(max(dot(reflect(-vViewDir,vNormal),ld3),0.),60.)*1.5;
+      vec3 sh1=hsl2rgb(mod(hue+.5+uTime*.08,1.),.7,.92);
+      vec3 sh2=hsl2rgb(mod(hue+.2,1.),.5,.95);
+      vec3 spec=sh1*s1+sh2*s2+vec3(1.)*s3;
 
-        float hue3=vUv.x*0.3+vUv.y*0.2+uTime*uSpeed*0.5;
+      // Prismatic dispersion at edges
+      vec3 prism=vec3(
+        hsl2rgb(mod(hue,1.),1.,.7).r,
+        hsl2rgb(mod(hue+.18,1.),1.,.7).g,
+        hsl2rgb(mod(hue+.36,1.),1.,.7).b
+      );
+      vec3 edge=mix(iri,prism,fresnelSharp*.9);
 
-        // Blend hues for complex color
-        float hue=mix(hue1,hue2,fresnel*0.6)+hue3*0.15;
+      // Depth shading
+      float depth=mix(.55,1.,fresnel);
+      vec3 color=edge*depth+spec*3.+hsl2rgb(mod(hue+.5,1.),.9,.8)*pow(NdV,.4)*.25;
 
-        // Core iridescent color — full saturation
-        vec3 iriColor1=hsl2rgb(mod(hue,1.0),1.0,0.58);
-        vec3 iriColor2=hsl2rgb(mod(hue+0.33,1.0),1.0,0.65); // complementary
-        vec3 iriColor=mix(iriColor1,iriColor2,fresnelSharp);
+      gl_FragColor=vec4(color,mix(.85,1.,depth));
+    }
+  `;
 
-        // SPECULAR HOTSPOT — bright white/rainbow shimmer
-        vec3 lightDir1=normalize(vec3(2.0,3.0,4.0));
-        vec3 lightDir2=normalize(vec3(-3.0,-1.0,3.0));
-        vec3 lightDir3=normalize(vec3(0.0,4.0,-2.0));
-        float spec1=pow(max(dot(reflect(-vViewDir,vNormal),lightDir1),0.0),64.0)*uShininess;
-        float spec2=pow(max(dot(reflect(-vViewDir,vNormal),lightDir2),0.0),32.0)*uShininess*0.5;
-        float spec3=pow(max(dot(reflect(-vViewDir,vNormal),lightDir3),0.0),48.0)*uShininess*0.7;
+  // Glow shader
+  const glowFrag=`
+    varying vec3 vNormal;varying vec3 vViewDir;uniform float uTime;uniform float uHueOffset;
+    vec3 hsl2rgb(float h,float s,float l){vec3 rgb=clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.);return l+s*(rgb-.5)*(1.-abs(2.*l-1.));}
+    void main(){
+      float f=pow(1.-max(dot(vNormal,vViewDir),0.),3.5);
+      float h=dot(vNormal,vec3(.5,.3,.8))+uTime*.18+uHueOffset;
+      vec3 c=hsl2rgb(mod(h,1.),.98,.72);
+      gl_FragColor=vec4(c*f*2.2,f*.55);
+    }
+  `;
+  const glowVert=`varying vec3 vNormal;varying vec3 vViewDir;void main(){vNormal=normalize(normalMatrix*normal);vec4 mvp=modelViewMatrix*vec4(position,1.);vViewDir=normalize(-mvp.xyz);gl_Position=projectionMatrix*mvp;}`;
 
-        // Specular has rainbow tint too
-        vec3 specHue1=hsl2rgb(mod(hue+0.5+uTime*0.1,1.0),0.8,0.9);
-        vec3 specHue2=hsl2rgb(mod(hue+0.15,1.0),0.6,0.95);
-        vec3 specColor=(specHue1*spec1+specHue2*spec2+vec3(1.)*spec3);
+  // Shared uniforms
+  const sharedU={uTime:{value:0},uMouse:{value:new THREE.Vector2(0,0)},uHueOffset:{value:0}};
+  const sharedU2={uTime:{value:0},uMouse:{value:new THREE.Vector2(0,0)},uHueOffset:{value:0.5}};
 
-        // CHROMATIC DISPERSION — edge rainbow prismatic split
-        vec3 prism=vec3(
-          hsl2rgb(mod(hue+0.0,1.0),1.0,0.7).r,
-          hsl2rgb(mod(hue+0.15,1.0),1.0,0.7).g,
-          hsl2rgb(mod(hue+0.3,1.0),1.0,0.7).b
-        );
-        vec3 edgeColor=mix(iriColor,prism,fresnelSharp*0.8);
-
-        // SURFACE DEPTH — darker at center, brighter at edges
-        float depth=mix(0.6,1.0,fresnel);
-        vec3 surface=edgeColor*depth*uIntensity;
-
-        // METALLIC SHEEN — adds that liquid metal quality
-        float metallic=pow(NdotV,0.5)*0.3;
-        vec3 metalColor=hsl2rgb(mod(hue+0.5,1.0),0.9,0.8)*metallic;
-
-        // FINAL composite
-        vec3 color=surface+specColor*2.5+metalColor;
-
-        // Alpha — opaque body, slightly transparent thin areas
-        float alpha=mix(0.88,1.0,depth);
-
-        gl_FragColor=vec4(color,alpha);
-      }
-    `,
-    transparent:true,
-    side:THREE.DoubleSide,
-  });
-
-  // GLOW material — additive outer rim
-  const glowMat=new THREE.ShaderMaterial({
-    uniforms:{uTime:{value:0}},
-    vertexShader:`
-      varying vec3 vNormal;varying vec3 vViewDir;
-      void main(){vNormal=normalize(normalMatrix*normal);vec4 mvp=modelViewMatrix*vec4(position,1.);vViewDir=normalize(-mvp.xyz);gl_Position=projectionMatrix*mvp;}
-    `,
-    fragmentShader:`
-      varying vec3 vNormal;varying vec3 vViewDir;uniform float uTime;
-      vec3 hsl2rgb(float h,float s,float l){vec3 rgb=clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.);return l+s*(rgb-.5)*(1.-abs(2.*l-1.));}
-      void main(){
-        float f=pow(1.-max(dot(vNormal,vViewDir),0.),3.5);
-        float h=dot(vNormal,vec3(.5,.3,.8))+uTime*.15;
-        vec3 c=hsl2rgb(mod(h,1.),.95,.7);
-        gl_FragColor=vec4(c*f*1.8,f*.5);
-      }
-    `,
-    transparent:true,blending:THREE.AdditiveBlending,side:THREE.BackSide,depthWrite:false,
-  });
-
-  // Scene group to hold the loaded model
-  const modelGroup=new THREE.Group();
-  scene.add(modelGroup);
-
-  // Load spline.glb from same folder
-  let modelLoaded=false;
-  const loader=new THREE.GLTFLoader();
-
-  function applyIridescentToModel(obj){
-    obj.traverse(child=>{
-      if(child.isMesh){
-        // Apply iridescent material
-        child.material=iriMat.clone();
-        child.material.uniforms=iriMat.uniforms; // share uniforms
-
-        // Add glow copy
-        const glowMesh=new THREE.Mesh(child.geometry,glowMat.clone());
-        glowMesh.material.uniforms=glowMat.uniforms;
-        glowMesh.scale.setScalar(1.04);
-        glowMesh.position.copy(child.position);
-        glowMesh.rotation.copy(child.rotation);
-        child.parent.add(glowMesh);
-
-        child.castShadow=true;
-        child.receiveShadow=true;
-      }
-    });
+  function makeIriMat(hueOff){
+    return new THREE.ShaderMaterial({uniforms:{uTime:{value:0},uMouse:{value:new THREE.Vector2(0,0)},uHueOffset:{value:hueOff||0}},vertexShader:iriVert,fragmentShader:iriFrag,transparent:true,side:THREE.DoubleSide});
+  }
+  function makeGlowMat(hueOff){
+    return new THREE.ShaderMaterial({uniforms:{uTime:{value:0},uHueOffset:{value:hueOff||0}},vertexShader:glowVert,fragmentShader:glowFrag,transparent:true,blending:THREE.AdditiveBlending,side:THREE.BackSide,depthWrite:false});
   }
 
-  loader.load(
-    "./spline.glb",
-    gltf=>{
-      modelLoaded=true;
-      const model=gltf.scene;
-      // Auto-center and scale to fit nicely in frame
-      const box=new THREE.Box3().setFromObject(model);
-      const center=box.getCenter(new THREE.Vector3());
-      const size=box.getSize(new THREE.Vector3());
-      const maxDim=Math.max(size.x,size.y,size.z);
-      model.position.sub(center);
-      model.scale.setScalar(7/maxDim); // scale to fill hero nicely
+  const allMats=[];
+  const helixGroup=new THREE.Group();
+  scene.add(helixGroup);
 
-      applyIridescentToModel(model);
-      modelGroup.add(model);
+  // ── BUILD DNA DOUBLE HELIX
+  const TURNS=5;           // number of full rotations
+  const HEIGHT=12;         // total height of helix
+  const RADIUS=2.2;        // radius of each strand
+  const TUBE_R=0.18;       // tube radius
+  const SEGMENTS=300;      // smoothness along length
+  const TUBE_SEGS=18;      // smoothness around tube
 
-      // Handle animations if any
-      if(gltf.animations&&gltf.animations.length){
-        const mixer=new THREE.AnimationMixer(model);
-        gltf.animations.forEach(clip=>mixer.clipAction(clip).play());
-        modelGroup.userData.mixer=mixer;
+  // Strand A — strand B is offset by PI
+  function buildStrand(phaseOffset, hueOff){
+    class StrandCurve extends THREE.Curve{
+      getPoint(t,o=new THREE.Vector3()){
+        const angle=t*Math.PI*2*TURNS+phaseOffset;
+        return o.set(
+          Math.cos(angle)*RADIUS,
+          (t-0.5)*HEIGHT,
+          Math.sin(angle)*RADIUS
+        );
       }
-    },
-    xhr=>{console.log("spline.glb loading:",Math.round(xhr.loaded/(xhr.total||1)*100)+"%");},
-    err=>{
-      console.warn("spline.glb not found, using fallback ribbon shape",err);
-      // FALLBACK: procedural ribbon if file not found
-      class SplineCurve extends THREE.Curve{
-        getPoint(t,o=new THREE.Vector3()){
-          const a=t*Math.PI*2;
-          return o.set(Math.sin(a*.8)*2.5-Math.cos(a*.4)*.9,t*5-2.5+Math.sin(a*.5)*.7,Math.cos(a*.7)*1.4+Math.sin(a*1.2)*.6);
-        }
-      }
-      const tGeo=new THREE.TubeGeometry(new SplineCurve(),200,.32,24,false);
-      const mesh=new THREE.Mesh(tGeo,iriMat);
-      const glow=new THREE.Mesh(tGeo,glowMat);
-      glow.scale.setScalar(1.06);
-      modelGroup.add(mesh,glow);
     }
-  );
+    const geo=new THREE.TubeGeometry(new StrandCurve(),SEGMENTS,TUBE_R,TUBE_SEGS,false);
+    const mat=makeIriMat(hueOff);
+    const gmat=makeGlowMat(hueOff);
+    allMats.push(mat,gmat);
+    const mesh=new THREE.Mesh(geo,mat);
+    const glow=new THREE.Mesh(geo,gmat);
+    glow.scale.setScalar(1.06);
+    helixGroup.add(mesh,glow);
+    return mesh;
+  }
 
-  // Lights — help with shadow and depth
-  scene.add(new THREE.AmbientLight(0xffffff,.15));
-  const pl1=new THREE.PointLight(0xffffff,3,30);pl1.position.set(4,5,6);scene.add(pl1);
-  const pl2=new THREE.PointLight(0xff00ff,2.5,20);pl2.position.set(-5,-2,5);scene.add(pl2);
-  const pl3=new THREE.PointLight(0x00ffff,2,18);pl3.position.set(5,-4,-3);scene.add(pl3);
-  const pl4=new THREE.PointLight(0xffaa00,1.5,15);pl4.position.set(-3,5,2);scene.add(pl4);
+  buildStrand(0, 0);       // Strand A
+  buildStrand(Math.PI, 0.5); // Strand B — complementary colors
 
-  // Mouse parallax
+  // ── RUNGS (connecting bars between strands)
+  const RUNG_COUNT=40;
+  const rungMat=makeIriMat(0.25);
+  allMats.push(rungMat);
+
+  for(let i=0;i<RUNG_COUNT;i++){
+    const t=i/RUNG_COUNT;
+    const angle=t*Math.PI*2*TURNS;
+    const y=(t-0.5)*HEIGHT;
+    const ax=Math.cos(angle)*RADIUS, az=Math.sin(angle)*RADIUS;
+    const bx=Math.cos(angle+Math.PI)*RADIUS, bz=Math.sin(angle+Math.PI)*RADIUS;
+
+    // Rung as a thin cylinder between the two strand points
+    const dir=new THREE.Vector3(bx-ax, 0, bz-az);
+    const len=dir.length();
+    const rungGeo=new THREE.CylinderGeometry(0.06,0.06,len,8);
+    const rung=new THREE.Mesh(rungGeo,rungMat);
+
+    // Position at midpoint
+    rung.position.set((ax+bx)/2, y, (az+bz)/2);
+
+    // Rotate to align with direction
+    rung.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0,1,0),
+      dir.normalize()
+    );
+    helixGroup.add(rung);
+
+    // Sphere nodes at each strand attachment point
+    const nodeGeo=new THREE.SphereGeometry(0.12,12,8);
+    const n1=new THREE.Mesh(nodeGeo,makeIriMat(i/RUNG_COUNT));
+    const n2=new THREE.Mesh(nodeGeo,makeIriMat(i/RUNG_COUNT+0.5));
+    allMats.push(n1.material,n2.material);
+    n1.position.set(ax,y,az);
+    n2.position.set(bx,y,bz);
+    helixGroup.add(n1,n2);
+  }
+
+  // FLOATING PARTICLES around the helix
+  const pN=400,pP=new Float32Array(pN*3);
+  for(let i=0;i<pN;i++){
+    const t=Math.random(),ang=t*Math.PI*2*TURNS;
+    const r=RADIUS+1+Math.random()*3;
+    pP[i*3]=Math.cos(ang+Math.random()*.8)*r;
+    pP[i*3+1]=(t-.5)*HEIGHT*1.3+Math.random()*.5-.25;
+    pP[i*3+2]=Math.sin(ang+Math.random()*.8)*r;
+  }
+  const pGeo=new THREE.BufferGeometry();pGeo.setAttribute("position",new THREE.BufferAttribute(pP,3));
+  const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xc850f5,size:.025,transparent:true,opacity:.4,sizeAttenuation:true}));
+  scene.add(pts);
+
+  // LIGHTS
+  scene.add(new THREE.AmbientLight(0xffffff,.12));
+  const l1=new THREE.PointLight(0xffffff,4,40);l1.position.set(5,6,8);scene.add(l1);
+  const l2=new THREE.PointLight(0xff00ff,3,30);l2.position.set(-6,-3,6);scene.add(l2);
+  const l3=new THREE.PointLight(0x00ffff,2.5,25);l3.position.set(6,-5,-4);scene.add(l3);
+  const l4=new THREE.PointLight(0xffaa00,2,20);l4.position.set(-4,6,3);scene.add(l4);
+
+  // MOUSE
   let moX=0,moY=0,tx=0,ty=0;
   document.addEventListener("mousemove",e=>{
-    const b=dev.getBoundingClientRect();
-    moX=((e.clientX-b.left)/b.width-.5)*2;
-    moY=((e.clientY-b.top)/b.height-.5)*2;
+    moX=(e.clientX/innerWidth-.5)*2;
+    moY=(e.clientY/innerHeight-.5)*2;
   });
 
   const clock=new THREE.Clock();
   (function loop(){
     requestAnimationFrame(loop);
     const t=clock.getElapsedTime();
-    tx+=(moX*.35-tx)*.04;
-    ty+=(-moY*.25-ty)*.04;
+    tx+=(moX*.3-tx)*.04;
+    ty+=(-moY*.2-ty)*.04;
 
-    // Slow majestic rotation
-    modelGroup.rotation.y=t*.09+tx*.35;
-    modelGroup.rotation.x=Math.sin(t*.12)*.08+ty*.18;
-    modelGroup.rotation.z=Math.sin(t*.07)*.05;
+    // Slow continuous rotation — majestic
+    helixGroup.rotation.y=t*.07+tx*.4;
+    helixGroup.rotation.x=Math.sin(t*.1)*.06+ty*.15;
+    helixGroup.rotation.z=Math.sin(t*.08)*.03;
 
-    // Update shader time
-    iriMat.uniforms.uTime.value=t;
-    glowMat.uniforms.uTime.value=t;
-    iriMat.uniforms.uMouse.value.set(moX,moY);
+    // Update ALL material uniforms
+    allMats.forEach(m=>{
+      if(m.uniforms){
+        if(m.uniforms.uTime) m.uniforms.uTime.value=t;
+        if(m.uniforms.uMouse) m.uniforms.uMouse.value.set(moX,moY);
+      }
+    });
 
-    // Update animation mixer
-    if(modelGroup.userData.mixer) modelGroup.userData.mixer.update(.016);
+    // Particles
+    pts.rotation.y=t*.012;
 
-    // Camera float
-    cam.position.x=Math.sin(t*.18)*.2+tx*.4;
-    cam.position.y=Math.cos(t*.14)*.15+ty*.25;
+    // Camera subtle drift + zoom based on scroll section
+    cam.position.x=Math.sin(t*.15)*.3+tx*.5;
+    cam.position.y=Math.cos(t*.12)*.2+ty*.3;
     cam.lookAt(0,0,0);
 
     renderer.render(scene,cam);
   })();
 
-  window.addEventListener("resize",()=>{cam.aspect=W()/H();cam.updateProjectionMatrix();renderer.setSize(W(),H());});
+  window.addEventListener("resize",()=>{
+    cam.aspect=innerWidth/innerHeight;
+    cam.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
 })();
 
 // ── 3D MODEL MODAL
@@ -607,8 +620,7 @@ function initMM(){
   const kl=new THREE.DirectionalLight(0xffffff,2.5);kl.position.set(3,4,3);mmS.add(kl);
   const fl=new THREE.DirectionalLight(0xc850f5,1.2);fl.position.set(-4,-2,2);mmS.add(fl);
   const bl=new THREE.DirectionalLight(0x4facfe,.8);bl.position.set(0,3,-4);mmS.add(bl);
-  const pl=new THREE.PointLight(0xffffff,1.8,20);pl.position.set(0,2,3);mmS.add(pl);
-  const grid=new THREE.GridHelper(12,24,0x1a1a1a,0x111111);grid.position.y=-1.6;mmS.add(grid);
+  mmS.add(Object.assign(new THREE.GridHelper(12,24,0x1a1a1a,0x111111),{position:{x:0,y:-1.6,z:0}}));
   mmGrp=new THREE.Group();mmS.add(mmGrp);
   let dn=false,lx=0,ly=0,rX=0,rY=0,zm=4;
   cv.addEventListener("mousedown",e=>{dn=true;lx=e.clientX;ly=e.clientY;});
@@ -616,9 +628,6 @@ function initMM(){
   cv.addEventListener("mouseup",()=>dn=false);cv.addEventListener("mouseleave",()=>dn=false);
   cv.addEventListener("wheel",e=>{zm=Math.max(1.5,Math.min(10,zm+e.deltaY*.005));mmC.position.z=zm;},{passive:true});
   cv.addEventListener("dblclick",()=>{rX=0;rY=0;zm=4;mmGrp.rotation.set(0,0,0);mmC.position.z=4;});
-  let tpx=0,tpy=0;
-  cv.addEventListener("touchstart",e=>{tpx=e.touches[0].clientX;tpy=e.touches[0].clientY;},{passive:true});
-  cv.addEventListener("touchmove",e=>{rY+=(e.touches[0].clientX-tpx)*.008;rX+=(e.touches[0].clientY-tpy)*.008;rX=Math.max(-1.3,Math.min(1.3,rX));mmGrp.rotation.set(rX,rY,0);tpx=e.touches[0].clientX;tpy=e.touches[0].clientY;},{passive:true});
   (function a(){requestAnimationFrame(a);if(!dn)mmGrp.rotation.y+=.004;if(mmMix2)mmMix2.update(.016);mmR.render(mmS,mmC);})();
 }
 function open3D(card){
@@ -632,10 +641,9 @@ function open3D(card){
   new THREE.GLTFLoader().load(BOX_MODEL,gltf=>{
     document.getElementById("mmld").style.display="none";
     const m=gltf.scene;
-    const box2=new THREE.Box3().setFromObject(m);
-    const ctr=box2.getCenter(new THREE.Vector3());
-    const sz=box2.getSize(new THREE.Vector3());
-    m.position.sub(ctr);m.scale.setScalar(2.4/Math.max(sz.x,sz.y,sz.z));
+    const b=new THREE.Box3().setFromObject(m);
+    const c=b.getCenter(new THREE.Vector3()),s=b.getSize(new THREE.Vector3());
+    m.position.sub(c);m.scale.setScalar(2.4/Math.max(s.x,s.y,s.z));
     mmGrp.add(m);
     if(gltf.animations.length){mmMix2=new THREE.AnimationMixer(m);gltf.animations.forEach(cl=>mmMix2.clipAction(cl).play());}
   },null,er=>console.error(er));
