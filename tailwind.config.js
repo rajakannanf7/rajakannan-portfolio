@@ -23,7 +23,7 @@ module.exports = {
         label: '0.28em',
         chip: '0.12em',
       },
-      maxWidth: { shell: '1440px' },
+      maxWidth: { shell: '1920px' },
       borderRadius: { panel: '22px', card: '18px', tile: '14px' },
       transitionTimingFunction: { swift: 'cubic-bezier(0.22, 1, 0.36, 1)' },
     },
