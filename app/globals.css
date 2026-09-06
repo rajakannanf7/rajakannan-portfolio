@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #08080a;
+  --bone: #edede8;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  background: var(--ink);
+  color: var(--bone);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  overflow-x: hidden;
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* Hide the native cursor only where we draw our own */
+@media (hover: hover) and (pointer: fine) {
+  body.has-custom-cursor,
+  body.has-custom-cursor * { cursor: none; }
+}
+
+::selection { background: rgba(124, 92, 255, 0.35); color: #fff; }
+
+/* Film grain */
+.grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+
+/* Scroll-reveal base state — JS adds .is-in */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-in { opacity: 1; transform: none; }
+
+/* Per-line text reveal */
+.line-mask { overflow: hidden; display: block; }
+.line-mask > span {
+  display: block;
+  transform: translateY(105%);
+  transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.is-in .line-mask > span { transform: none; }
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 34s linear infinite;
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .line-mask > span { transition: none; opacity: 1; transform: none; }
+  .marquee-track { animation: none; }
+}
