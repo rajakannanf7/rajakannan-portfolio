@@ -1,74 +1,30 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { VioletButton, GhostButton } from '../ui/bits';
 
 const ROLES = ['MOTION DESIGNER', '3D ARTIST', 'AI VISUAL CREATOR', 'PHOTOGRAPHER'];
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
 export default function Hero({ site }) {
-  const heroRef = useRef(null);
-  const [gaze, setGaze] = useState({ x: 0, y: 0 });
-  const [characterSrc, setCharacterSrc] = useState('');
+  const [reveal, setReveal] = useState({ x: 52, y: 42, active: false });
 
-  useEffect(() => {
-    let active = true;
-    fetch('/img/hero-character-site.webp.b64.txt')
-      .then((response) => {
-        if (!response.ok) throw new Error('Character asset unavailable');
-        return response.text();
-      })
-      .then((payload) => {
-        if (active && payload.trim()) {
-          setCharacterSrc(`data:image/webp;base64,${payload.trim()}`);
-        }
-      })
-      .catch(() => {
-        if (active) setCharacterSrc('');
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const moveReveal = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+    setReveal({ x, y, active: true });
+  };
 
-  useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return undefined;
-
-    const onPointerMove = (event) => {
-      const rect = hero.getBoundingClientRect();
-      const x = clamp((event.clientX - rect.left) / rect.width - 0.5, -0.5, 0.5);
-      const y = clamp((event.clientY - rect.top) / rect.height - 0.5, -0.5, 0.5);
-      setGaze({ x, y });
-    };
-
-    const onPointerLeave = () => setGaze({ x: 0, y: 0 });
-    hero.addEventListener('pointermove', onPointerMove, { passive: true });
-    hero.addEventListener('pointerleave', onPointerLeave, { passive: true });
-
-    return () => {
-      hero.removeEventListener('pointermove', onPointerMove);
-      hero.removeEventListener('pointerleave', onPointerLeave);
-    };
-  }, []);
-
-  const headX = gaze.x * -12;
-  const headY = gaze.y * -7;
-  const eyeX = gaze.x * 7;
-  const eyeY = gaze.y * 4;
+  const mask = reveal.active
+    ? `radial-gradient(circle clamp(120px, 11vw, 230px) at ${reveal.x}% ${reveal.y}%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.68) 72%, #000 82%)`
+    : 'linear-gradient(#000, #000)';
 
   return (
-    <section
-      ref={heroRef}
-      className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink px-6 pb-4 pt-24 md:px-[clamp(36px,4vw,80px)] md:pt-28 xl:min-h-[calc(100svh-48px)] xl:px-[clamp(48px,4.2vw,96px)] xl:pt-24"
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(62%_90%_at_76%_38%,rgba(112,82,255,0.16),transparent_58%),radial-gradient(40%_70%_at_47%_46%,rgba(84,55,180,0.07),transparent_66%)]" />
+    <section className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink px-6 pb-4 pt-24 md:px-[clamp(36px,4vw,80px)] md:pt-28 xl:min-h-[calc(100svh-48px)] xl:px-[clamp(48px,4.2vw,96px)] xl:pt-24">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(62%_90%_at_76%_38%,rgba(112,82,255,0.13),transparent_58%),radial-gradient(40%_70%_at_47%_46%,rgba(84,55,180,0.06),transparent_66%)]" />
 
-      <div className="relative mx-auto grid w-full max-w-[2200px] grid-cols-1 items-stretch gap-8 xl:grid-cols-[0.88fr_1.12fr] xl:gap-0 2xl:grid-cols-[0.84fr_1.16fr]">
+      <div className="relative mx-auto grid w-full max-w-[2200px] grid-cols-1 items-stretch gap-8 xl:grid-cols-[0.86fr_1.14fr] xl:gap-0 2xl:grid-cols-[0.82fr_1.18fr]">
         <div className="relative z-20 flex min-h-[700px] flex-col justify-start pb-8 pt-8 xl:min-h-[calc(100svh-155px)] xl:max-h-[900px] xl:pr-[clamp(28px,3vw,64px)] xl:pt-[clamp(42px,6vh,72px)]">
           <div className="mb-7 flex items-center gap-5 font-mono text-[10px] tracking-[0.28em] text-dim">
             <span className="h-2 w-2 rounded-full bg-orchid shadow-[0_0_18px_rgba(164,107,240,0.8)]" />
@@ -141,45 +97,51 @@ export default function Hero({ site }) {
           </div>
         </div>
 
-        <div className="relative z-10 min-h-[650px] overflow-hidden rounded-[24px] bg-[#090810] xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none">
-          {characterSrc && (
-            <img src={characterSrc} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[45%_30%] opacity-35 blur-[22px] saturate-[1.1]" />
-          )}
-          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-ink via-ink/18 to-transparent xl:from-ink/90 xl:via-ink/5" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-36 bg-gradient-to-t from-ink via-ink/35 to-transparent" />
+        <div
+          className="relative z-10 min-h-[650px] overflow-hidden rounded-[24px] bg-[#08090d] xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none"
+          onPointerEnter={moveReveal}
+          onPointerMove={moveReveal}
+          onPointerLeave={() => setReveal((current) => ({ ...current, active: false }))}
+          onPointerDown={moveReveal}
+          data-cursor="hide"
+        >
+          <img
+            src="/img/Cyber.png"
+            alt="Cyber version of the portfolio character"
+            draggable="false"
+            className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-center"
+          />
 
-          {characterSrc && (
+          <img
+            src="/img/Normal.png"
+            alt="Normal version of the portfolio character"
+            draggable="false"
+            className="pointer-events-none absolute inset-0 z-10 h-full w-full select-none object-cover object-center"
+            style={{ WebkitMaskImage: mask, maskImage: mask }}
+          />
+
+          <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-r from-ink/72 via-transparent to-transparent xl:from-ink/82" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-32 bg-gradient-to-t from-ink/45 to-transparent" />
+
+          <div className="pointer-events-none absolute left-6 top-6 z-30 flex items-center gap-3 rounded-full border border-bone/10 bg-ink/40 px-4 py-2.5 backdrop-blur-md">
+            <span className={`h-1.5 w-1.5 rounded-full ${reveal.active ? 'bg-orchid shadow-[0_0_14px_rgba(164,107,240,.9)]' : 'bg-bone/40'}`} />
+            <span className="font-mono text-[9px] tracking-[0.2em] text-bone/65">MOVE TO REVEAL</span>
+          </div>
+
+          <div className="pointer-events-none absolute bottom-6 left-6 z-30 flex gap-4 font-mono text-[9px] tracking-[0.2em]">
+            <span className="text-bone/55">NORMAL</span>
+            <span className="text-bone/20">/</span>
+            <span className="text-orchid">CYBER</span>
+          </div>
+
+          {reveal.active && (
             <div
-              className="absolute bottom-0 right-[2%] z-20 h-[97%] aspect-[486/720] transition-transform duration-300 ease-out will-change-transform md:right-[8%] xl:right-[5%] 2xl:right-[7%]"
-              style={{ transform: `translate3d(${headX}px, ${headY}px, 0) scale(1.01)` }}
+              className="pointer-events-none absolute z-40 h-[clamp(120px,11vw,230px)] w-[clamp(120px,11vw,230px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-orchid/40 shadow-[0_0_0_1px_rgba(255,255,255,.04),0_0_45px_rgba(124,92,255,.2)]"
+              style={{ left: `${reveal.x}%`, top: `${reveal.y}%` }}
             >
-              <img src={characterSrc} alt="Futuristic digital character" className="h-full w-full object-cover" />
-              <span
-                className="pointer-events-none absolute left-[18.5%] top-[25.7%] h-[7px] w-[7px] rounded-full bg-orchid/90 shadow-[0_0_16px_rgba(164,107,240,0.95)] mix-blend-screen"
-                style={{ transform: `translate3d(${eyeX}px, ${eyeY}px, 0)` }}
-              />
-              <span
-                className="pointer-events-none absolute left-[38.7%] top-[25.2%] h-[7px] w-[7px] rounded-full bg-orchid/90 shadow-[0_0_16px_rgba(164,107,240,0.95)] mix-blend-screen"
-                style={{ transform: `translate3d(${eyeX}px, ${eyeY}px, 0)` }}
-              />
+              <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-bone shadow-[0_0_12px_rgba(255,255,255,.8)]" />
             </div>
           )}
-
-          <div className="pointer-events-none absolute left-[7%] top-[34%] z-30 hidden xl:block">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-bone/10 bg-bone/[0.015] backdrop-blur-sm">
-              <div className="h-2 w-2 rounded-full bg-bone shadow-[0_0_18px_rgba(201,191,255,0.7)]" />
-            </div>
-            <p className="ml-20 mt-1 w-20 font-mono text-[8px] leading-[1.8] tracking-[0.18em] text-dim">SHE FOLLOWS YOUR CURSOR</p>
-          </div>
-
-          <div className="absolute right-6 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-6 xl:flex">
-            {['HOME', 'WORK', 'PHOTO', 'LAB', 'CONTACT'].map((label, i) => (
-              <div key={label} className="flex items-center gap-3">
-                <span className={`h-2 w-2 rounded-full ${i === 0 ? 'bg-orchid shadow-[0_0_14px_rgba(164,107,240,0.8)]' : 'bg-bone/25'}`} />
-                <span className={`font-mono text-[9px] tracking-[0.18em] ${i === 0 ? 'text-bone' : 'text-dim'}`}>{String(i + 1).padStart(2, '0')} {label}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>
