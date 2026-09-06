@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Nav from '../../components/ui/Nav';
 import Footer from '../../components/ui/Footer';
 import ContactForm from './ContactForm';
@@ -9,6 +10,14 @@ export const metadata = {
   title: 'Contact',
   description: 'Start a project, or book a shoot in Chennai.',
 };
+
+function ContactFormFallback() {
+  return (
+    <div className="rounded-2xl border border-bone/12 bg-bone/[0.02] p-10 text-[15px] text-mute">
+      Loading contact form…
+    </div>
+  );
+}
 
 export default async function ContactPage() {
   const site = await getSite();
@@ -29,7 +38,9 @@ export default async function ContactPage() {
 
           <div className="mt-20 grid grid-cols-1 gap-14 md:grid-cols-12">
             <Reveal className="md:col-span-7">
-              <ContactForm />
+              <Suspense fallback={<ContactFormFallback />}>
+                <ContactForm />
+              </Suspense>
             </Reveal>
 
             <Reveal className="md:col-span-5 md:pl-8" delay={120}>
