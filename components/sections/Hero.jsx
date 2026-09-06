@@ -1,323 +1,192 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sparkles, Stars, useTexture } from '@react-three/drei';
+import { Sparkles, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
-const SECTORS = [
-  { title: 'INTRO', label: 'RAJA KANNAN' },
-  { title: '01', label: 'MOTION / CGI' },
-  { title: '02', label: 'AI / GENERATIVE' },
-  { title: '03', label: 'PHOTOGRAPHY' },
-  { title: '04', label: 'LAB / REALTIME' },
+const LANES = [-3.6, -1.8, 0, 1.8, 3.6];
+const POWERS = [
+  { type: 'NITRO', color: '#67e8ff', accent: '#1c7cff' },
+  { type: 'SHOCK', color: '#b66dff', accent: '#6a29ff' },
+  { type: 'SHIELD', color: '#69a8ff', accent: '#2e5dff' },
 ];
 
-const PORTALS = [
-  { title: 'SENTIENT', subtitle: 'MOTION / CGI', image: '/img/cs-hero.jpg', href: '/work/sentient', x: -4.6, z: -31, accent: '#a66cff' },
-  { title: 'MATERIAL WORLDS', subtitle: '3D / LOOKDEV', image: '/img/cs-fullbleed.jpg', href: '/work', x: 4.7, z: -50, accent: '#56d8ff' },
-  { title: 'AI TEXTURE', subtitle: 'GENERATIVE / COMPOSITING', image: '/img/cs-ai-texture.jpg', href: '/work', x: -4.4, z: -69, accent: '#e46cff' },
-  { title: 'LAB', subtitle: 'REALTIME / EXPERIMENTS', image: '/img/cs-frame-03.jpg', href: '/lab', x: 4.4, z: -88, accent: '#71b8ff' },
-];
-
-function useCanvasTexture(title, subtitle, accent = '#9d65ff', large = false) {
-  const [texture, setTexture] = useState(null);
-
-  useEffect(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = large ? 2048 : 1024;
-    canvas.height = large ? 1024 : 512;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-
-    ctx.clearRect(0, 0, w, h);
-    const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, 'rgba(7,8,13,0.94)');
-    bg.addColorStop(0.55, 'rgba(13,11,24,0.86)');
-    bg.addColorStop(1, 'rgba(5,8,15,0.94)');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.strokeStyle = `${accent}88`;
-    ctx.lineWidth = large ? 4 : 2;
-    ctx.strokeRect(18, 18, w - 36, h - 36);
-
-    ctx.fillStyle = accent;
-    ctx.fillRect(48, large ? 92 : 58, large ? 170 : 90, large ? 7 : 4);
-
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(243,241,255,0.96)';
-    ctx.font = `${large ? 800 : 700} ${large ? 190 : 72}px Arial, sans-serif`;
-    ctx.fillText(title, 48, large ? 150 : 92);
-
-    ctx.fillStyle = 'rgba(222,218,242,0.54)';
-    ctx.font = `${large ? 36 : 22}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    ctx.letterSpacing = `${large ? 7 : 4}px`;
-    ctx.fillText(subtitle, 54, large ? 390 : 205);
-
-    if (large) {
-      ctx.fillStyle = 'rgba(226,222,245,0.33)';
-      ctx.font = '26px ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('MOTION DESIGN · 3D / CGI · AI VISUALS · PHOTOGRAPHY · CREATIVE TECHNOLOGY', 54, 500);
-      ctx.fillStyle = 'rgba(226,222,245,0.20)';
-      ctx.font = '22px ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('CHENNAI / INDIA — 2026', 54, 580);
-    }
-
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
-    setTexture(tex);
-
-    return () => tex.dispose();
-  }, [title, subtitle, accent, large]);
-
-  return texture;
-}
-
-function AuroraVoid() {
-  const mat = useRef(null);
-
-  useFrame((state) => {
-    if (mat.current) mat.current.uniforms.uTime.value = state.clock.elapsedTime;
-  });
-
-  const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
-
+function CarBody({ enemy = false, accent = '#9d65ff', accent2 = '#67dcff' }) {
   return (
-    <mesh scale={80} frustumCulled={false}>
-      <sphereGeometry args={[1, 48, 32]} />
-      <shaderMaterial
-        ref={mat}
-        side={THREE.BackSide}
-        uniforms={uniforms}
-        vertexShader={`
-          varying vec3 vPos;
-          varying vec2 vUv;
-          void main(){
-            vUv = uv;
-            vPos = position;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
-          }
-        `}
-        fragmentShader={`
-          uniform float uTime;
-          varying vec3 vPos;
-          varying vec2 vUv;
-          void main(){
-            float bands = sin(vUv.y * 16.0 + sin(vUv.x * 9.0 + uTime * 0.08) * 2.0 + uTime * 0.05);
-            float veil = smoothstep(0.15, 1.0, bands) * 0.13;
-            float horizon = pow(1.0 - abs(vUv.y - 0.50) * 1.7, 3.0);
-            vec3 base = vec3(0.008,0.009,0.018);
-            vec3 purple = vec3(0.23,0.08,0.46);
-            vec3 cyan = vec3(0.02,0.20,0.32);
-            float mixv = 0.5 + 0.5 * sin(vUv.x * 8.0 + uTime * 0.04);
-            vec3 glow = mix(purple, cyan, mixv) * (veil + horizon * 0.10);
-            gl_FragColor = vec4(base + glow, 1.0);
-          }
-        `}
-      />
-    </mesh>
-  );
-}
-
-function TitleMonolith() {
-  const texture = useCanvasTexture('RAJA KANNAN', 'CREATIVE TECHNOLOGIST / VISUAL ARTIST', '#9d65ff', true);
-  const group = useRef(null);
-
-  useFrame((state) => {
-    if (!group.current) return;
-    const t = state.clock.elapsedTime;
-    group.current.rotation.y = -0.06 + Math.sin(t * 0.32) * 0.015;
-    group.current.position.y = 3.5 + Math.sin(t * 0.42) * 0.05;
-  });
-
-  return (
-    <group ref={group} position={[0, 3.5, -12]} rotation={[0, -0.06, 0]}>
-      <mesh position={[0, 0, -0.12]}>
-        <boxGeometry args={[15.2, 7.2, 0.28]} />
-        <meshStandardMaterial color="#070810" metalness={0.78} roughness={0.24} />
+    <group scale={enemy ? 0.9 : 1}>
+      <mesh castShadow position={[0, 0.18, 0]} scale={[1.02, 0.28, 1.95]}>
+        <boxGeometry args={[1.8, 1, 1]} />
+        <meshPhysicalMaterial color={enemy ? '#171017' : '#0c1017'} metalness={0.96} roughness={0.16} clearcoat={1} clearcoatRoughness={0.08} />
       </mesh>
-      {texture && (
-        <mesh position={[0, 0, 0.04]}>
-          <planeGeometry args={[14.7, 7]} />
-          <meshBasicMaterial map={texture} transparent toneMapped={false} />
-        </mesh>
-      )}
-      <mesh position={[-7.63, 0, 0]} scale={[0.035, 3.5, 0.08]}>
-        <boxGeometry />
-        <meshBasicMaterial color="#9d65ff" toneMapped={false} />
+
+      <mesh castShadow position={[0, 0.42, -0.22]} scale={[0.72, 0.31, 1.12]}>
+        <sphereGeometry args={[1, 32, 20]} />
+        <meshPhysicalMaterial
+          color={enemy ? '#281219' : '#121521'}
+          metalness={0.9}
+          roughness={0.08}
+          transmission={enemy ? 0.03 : 0.08}
+          emissive={enemy ? '#4e1027' : '#23154f'}
+          emissiveIntensity={enemy ? 0.5 : 0.42}
+        />
       </mesh>
-      <mesh position={[7.63, 0, 0]} scale={[0.035, 3.5, 0.08]}>
-        <boxGeometry />
-        <meshBasicMaterial color="#57d8ff" toneMapped={false} />
+
+      <mesh position={[0, 0.19, -1.58]} rotation={[Math.PI / 2, 0, Math.PI / 4]} scale={[0.74, 0.74, 1]}>
+        <coneGeometry args={[0.86, 1.6, 4]} />
+        <meshStandardMaterial color={enemy ? '#201218' : '#10141d'} metalness={0.96} roughness={0.14} />
       </mesh>
-      <pointLight position={[-6.7, 0.5, 2]} color="#8b5bff" intensity={8} distance={10} />
-      <pointLight position={[6.7, 0.2, 2]} color="#57d8ff" intensity={6} distance={10} />
-    </group>
-  );
-}
 
-function SculpturalObject({ accent, index = 0 }) {
-  const ref = useRef(null);
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-    ref.current.rotation.x += delta * (0.12 + index * 0.02);
-    ref.current.rotation.y += delta * (0.18 + index * 0.025);
-  });
-
-  return (
-    <Float speed={1.2 + index * 0.12} rotationIntensity={0.28} floatIntensity={0.35}>
-      <group ref={ref}>
-        {index % 3 === 0 ? (
-          <mesh>
-            <torusKnotGeometry args={[0.82, 0.22, 120, 18, 2, 5]} />
-            <meshPhysicalMaterial color="#11131c" metalness={0.92} roughness={0.11} clearcoat={1} clearcoatRoughness={0.08} emissive={accent} emissiveIntensity={0.16} />
+      {[-1.13, 1.13].map((x, i) => (
+        <group key={x}>
+          <mesh position={[x, 0.07, 0.18]} rotation={[0, i ? 0.08 : -0.08, i ? -0.05 : 0.05]} scale={[0.94, 0.08, 1.55]}>
+            <boxGeometry />
+            <meshStandardMaterial color="#070a10" metalness={0.95} roughness={0.17} />
           </mesh>
-        ) : index % 3 === 1 ? (
-          <mesh>
-            <icosahedronGeometry args={[1.05, 2]} />
-            <meshPhysicalMaterial color="#11131b" metalness={0.92} roughness={0.08} clearcoat={1} emissive={accent} emissiveIntensity={0.18} wireframe={false} />
+          <mesh position={[x * 0.78, 0.25, -0.16]} scale={[0.065, 0.045, 1.48]}>
+            <boxGeometry />
+            <meshBasicMaterial color={i ? accent2 : accent} toneMapped={false} />
           </mesh>
-        ) : (
-          <mesh rotation={[0.6, 0.3, 0.2]}>
-            <torusGeometry args={[0.95, 0.24, 22, 90]} />
-            <meshPhysicalMaterial color="#12131d" metalness={0.95} roughness={0.09} clearcoat={1} emissive={accent} emissiveIntensity={0.14} />
+          <mesh position={[x * 0.97, 0.11, -1.18]} rotation={[0, i ? 0.27 : -0.27, 0]} scale={[0.42, 0.07, 0.68]}>
+            <boxGeometry />
+            <meshStandardMaterial color="#0d1018" metalness={0.92} roughness={0.19} />
           </mesh>
-        )}
-        <pointLight color={accent} intensity={4.5} distance={6} />
-      </group>
-    </Float>
-  );
-}
-
-function ProjectPortal({ data, index }) {
-  const group = useRef(null);
-  const [hovered, setHovered] = useState(false);
-  const image = useTexture(data.image);
-  const label = useCanvasTexture(data.title, data.subtitle, data.accent, false);
-  image.colorSpace = THREE.SRGBColorSpace;
-
-  useFrame((state, delta) => {
-    if (!group.current) return;
-    const target = hovered ? 1.055 : 1;
-    const s = THREE.MathUtils.damp(group.current.scale.x, target, 6, delta);
-    group.current.scale.setScalar(s);
-    group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, data.x < 0 ? 0.23 : -0.23, 5, delta);
-    group.current.position.y = 2.9 + Math.sin(state.clock.elapsedTime * 0.65 + index) * 0.06;
-  });
-
-  return (
-    <group
-      ref={group}
-      position={[data.x, 2.9, data.z]}
-      rotation={[0, data.x < 0 ? 0.23 : -0.23, 0]}
-      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { setHovered(false); document.body.style.cursor = ''; }}
-      onClick={(e) => { e.stopPropagation(); window.location.href = data.href; }}
-    >
-      <mesh position={[0, 0, -0.18]}>
-        <boxGeometry args={[6.25, 4.05, 0.34]} />
-        <meshStandardMaterial color="#070910" metalness={0.82} roughness={0.20} />
-      </mesh>
-
-      <mesh position={[0, 0.25, 0.02]}>
-        <planeGeometry args={[5.8, 3.25]} />
-        <meshBasicMaterial map={image} toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 0.25, 0.04]}>
-        <planeGeometry args={[5.8, 3.25]} />
-        <meshBasicMaterial color={data.accent} transparent opacity={hovered ? 0.08 : 0.035} toneMapped={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-
-      <group position={[0, 0.35, 0.9]} scale={0.62}>
-        <SculpturalObject accent={data.accent} index={index} />
-      </group>
-
-      {label && (
-        <mesh position={[0, -2.47, 0.06]}>
-          <planeGeometry args={[5.8, 2.15]} />
-          <meshBasicMaterial map={label} transparent toneMapped={false} />
-        </mesh>
-      )}
-
-      <mesh position={[-3.16, 0, 0]} scale={[0.035, 2.08, 0.08]}>
-        <boxGeometry />
-        <meshBasicMaterial color={data.accent} transparent opacity={hovered ? 1 : 0.72} toneMapped={false} />
-      </mesh>
-      <mesh position={[3.16, 0, 0]} scale={[0.035, 2.08, 0.08]}>
-        <boxGeometry />
-        <meshBasicMaterial color={index % 2 ? '#56d8ff' : '#c47aff'} transparent opacity={hovered ? 0.9 : 0.48} toneMapped={false} />
-      </mesh>
-
-      <pointLight position={[0, 0.4, 2]} color={data.accent} intensity={hovered ? 8 : 4.5} distance={10} />
-    </group>
-  );
-}
-
-function WorldArchitecture() {
-  return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, -56]} receiveShadow>
-        <planeGeometry args={[26, 150]} />
-        <meshStandardMaterial color="#07080d" metalness={0.52} roughness={0.56} />
-      </mesh>
-
-      {[-4.6, 0, 4.6].map((x, i) => (
-        <mesh key={x} position={[x, 0.005, -57]} scale={[0.025, 0.012, 72]}>
-          <boxGeometry />
-          <meshBasicMaterial color={i === 1 ? '#9d65ff' : i === 0 ? '#6f5fff' : '#52d4ff'} transparent opacity={i === 1 ? 0.26 : 0.12} toneMapped={false} />
-        </mesh>
+        </group>
       ))}
 
-      {Array.from({ length: 13 }, (_, i) => {
-        const z = -18 - i * 9;
-        const hue = i % 2 === 0;
-        return (
-          <group key={i} position={[0, 0, z]}>
-            <mesh position={[-8.4, 3.65, 0]} scale={[0.075, 3.65, 0.075]}>
-              <boxGeometry />
-              <meshBasicMaterial color={hue ? '#7144d8' : '#285985'} transparent opacity={0.42} toneMapped={false} />
-            </mesh>
-            <mesh position={[8.4, 3.65, 0]} scale={[0.075, 3.65, 0.075]}>
-              <boxGeometry />
-              <meshBasicMaterial color={hue ? '#236a88' : '#6741c8'} transparent opacity={0.42} toneMapped={false} />
-            </mesh>
-            <mesh position={[0, 7.28, 0]} scale={[8.45, 0.055, 0.075]}>
-              <boxGeometry />
-              <meshBasicMaterial color={hue ? '#643cba' : '#2c718f'} transparent opacity={0.26} toneMapped={false} />
-            </mesh>
-            <mesh position={[-7.2, 6.7, 0]} rotation={[0, 0, -0.52]} scale={[1.7, 0.025, 0.05]}>
-              <boxGeometry />
-              <meshBasicMaterial color="#9a6aff" transparent opacity={0.18} toneMapped={false} />
-            </mesh>
-            <mesh position={[7.2, 6.7, 0]} rotation={[0, 0, 0.52]} scale={[1.7, 0.025, 0.05]}>
-              <boxGeometry />
-              <meshBasicMaterial color="#60ddff" transparent opacity={0.16} toneMapped={false} />
-            </mesh>
-          </group>
-        );
-      })}
+      <mesh position={[0, 0.47, 1.32]} scale={[0.84, 0.055, 0.19]}>
+        <boxGeometry />
+        <meshStandardMaterial color="#080a10" metalness={0.98} roughness={0.11} />
+      </mesh>
+      <mesh position={[-0.72, 0.53, 1.3]} scale={[0.045, 0.31, 0.045]}><boxGeometry /><meshStandardMaterial color="#0b0d14" metalness={0.95} roughness={0.12} /></mesh>
+      <mesh position={[0.72, 0.53, 1.3]} scale={[0.045, 0.31, 0.045]}><boxGeometry /><meshStandardMaterial color="#0b0d14" metalness={0.95} roughness={0.12} /></mesh>
 
-      {Array.from({ length: 22 }, (_, i) => {
-        const side = i % 2 === 0 ? -1 : 1;
-        const z = -24 - i * 5.2;
-        const height = 1.8 + (i % 5) * 0.85;
+      <mesh position={[-0.56, 0.22, -1.72]} scale={[0.28, 0.055, 0.12]}><boxGeometry /><meshBasicMaterial color={accent} toneMapped={false} /></mesh>
+      <mesh position={[0.56, 0.22, -1.72]} scale={[0.28, 0.055, 0.12]}><boxGeometry /><meshBasicMaterial color={accent2} toneMapped={false} /></mesh>
+    </group>
+  );
+}
+
+function PlayerCar({ carRef, boost, shield }) {
+  const thrusters = useRef(null);
+  const glow = useRef(null);
+  const shieldRef = useRef(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (thrusters.current) {
+      const pulse = 1 + Math.sin(t * 24) * 0.08;
+      thrusters.current.scale.z = pulse * (boost ? 2.15 : 1);
+    }
+    if (glow.current) glow.current.material.opacity = 0.28 + Math.sin(t * 8) * 0.05 + (boost ? 0.18 : 0);
+    if (shieldRef.current) {
+      shieldRef.current.rotation.y += 0.012;
+      shieldRef.current.rotation.z -= 0.006;
+      shieldRef.current.material.opacity = shield ? 0.18 + Math.sin(t * 6) * 0.05 : 0;
+    }
+  });
+
+  return (
+    <group ref={carRef} position={[0, 0.55, 4.1]}>
+      <CarBody />
+      <group ref={thrusters} position={[0, 0.11, 1.7]}>
+        {[-0.53, 0.53].map((x, i) => (
+          <mesh key={x} position={[x, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.16, 1.25, 18]} />
+            <meshBasicMaterial color={i ? '#67e6ff' : '#ae68ff'} transparent opacity={0.92} toneMapped={false} />
+          </mesh>
+        ))}
+      </group>
+      <mesh ref={glow} position={[0, -0.24, 0.16]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.8, 48]} />
+        <meshBasicMaterial color="#7343ec" transparent opacity={0.34} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </mesh>
+      <mesh ref={shieldRef} visible={shield} scale={[1.9, 1.15, 2.7]}>
+        <sphereGeometry args={[1, 28, 18]} />
+        <meshBasicMaterial color="#72a7ff" transparent opacity={0.16} wireframe depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </mesh>
+      <pointLight position={[0, 0.15, 1.35]} intensity={boost ? 8 : 4.5} distance={7} color="#8d5bff" />
+    </group>
+  );
+}
+
+function Road({ speed }) {
+  const refs = useRef([]);
+  const archRefs = useRef([]);
+  const cityRefs = useRef([]);
+  const count = 34;
+  const spacing = 6;
+
+  useFrame((state, delta) => {
+    const dz = speed * delta;
+    refs.current.forEach((g) => {
+      if (!g) return;
+      g.position.z += dz;
+      if (g.position.z > 13) g.position.z -= count * spacing;
+    });
+    archRefs.current.forEach((g) => {
+      if (!g) return;
+      g.position.z += dz;
+      if (g.position.z > 11) g.position.z -= 15 * 18;
+    });
+    cityRefs.current.forEach((g) => {
+      if (!g) return;
+      g.position.z += dz * 0.82;
+      if (g.position.z > 15) g.position.z -= 26 * 14;
+    });
+  });
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <group key={`road-${i}`} ref={(el) => { refs.current[i] = el; }} position={[0, 0, 8 - i * spacing]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.035, 0]} receiveShadow>
+            <planeGeometry args={[13.5, spacing + 0.08]} />
+            <meshPhysicalMaterial color={i % 2 ? '#080a11' : '#0a0c13'} metalness={0.58} roughness={0.34} clearcoat={0.5} />
+          </mesh>
+
+          {[-4.5, -2.25, 0, 2.25, 4.5].map((x, n) => (
+            <mesh key={x} position={[x, 0.01, 0]} scale={[0.025, 0.012, n === 2 ? 1.25 : 0.88]}>
+              <boxGeometry />
+              <meshBasicMaterial color={n < 2 ? '#6c5cff' : n > 2 ? '#45d7ff' : '#9b75ff'} transparent opacity={n === 2 ? 0.52 : 0.22} toneMapped={false} />
+            </mesh>
+          ))}
+
+          <mesh position={[-6.58, 0.13, 0]} scale={[0.08, 0.14, spacing * 0.49]}><boxGeometry /><meshBasicMaterial color="#8d54ff" toneMapped={false} /></mesh>
+          <mesh position={[6.58, 0.13, 0]} scale={[0.08, 0.14, spacing * 0.49]}><boxGeometry /><meshBasicMaterial color="#45d7ff" toneMapped={false} /></mesh>
+          <mesh position={[-6.15, 0.01, 0]} scale={[0.34, 0.012, spacing * 0.47]}><boxGeometry /><meshBasicMaterial color="#3d1c7f" transparent opacity={0.28} toneMapped={false} /></mesh>
+          <mesh position={[6.15, 0.01, 0]} scale={[0.34, 0.012, spacing * 0.47]}><boxGeometry /><meshBasicMaterial color="#174f69" transparent opacity={0.28} toneMapped={false} /></mesh>
+        </group>
+      ))}
+
+      {Array.from({ length: 15 }, (_, i) => (
+        <group key={`arch-${i}`} ref={(el) => { archRefs.current[i] = el; }} position={[0, 0, -14 - i * 18]}>
+          <mesh position={[-7.35, 2.75, 0]} scale={[0.09, 2.75, 0.09]}><boxGeometry /><meshBasicMaterial color={i % 2 ? '#6a36d8' : '#254c9f'} transparent opacity={0.78} toneMapped={false} /></mesh>
+          <mesh position={[7.35, 2.75, 0]} scale={[0.09, 2.75, 0.09]}><boxGeometry /><meshBasicMaterial color={i % 2 ? '#1c6e8d' : '#5133b5'} transparent opacity={0.78} toneMapped={false} /></mesh>
+          <mesh position={[0, 5.5, 0]} scale={[7.42, 0.07, 0.1]}><boxGeometry /><meshBasicMaterial color={i % 2 ? '#7650ef' : '#3ca4ce'} transparent opacity={0.42} toneMapped={false} /></mesh>
+          <mesh position={[-5.8, 4.65, 0]} rotation={[0, 0, -0.6]} scale={[2.15, 0.045, 0.075]}><boxGeometry /><meshBasicMaterial color="#a06cff" transparent opacity={0.35} toneMapped={false} /></mesh>
+          <mesh position={[5.8, 4.65, 0]} rotation={[0, 0, 0.6]} scale={[2.15, 0.045, 0.075]}><boxGeometry /><meshBasicMaterial color="#62ddff" transparent opacity={0.35} toneMapped={false} /></mesh>
+        </group>
+      ))}
+
+      {Array.from({ length: 26 }, (_, i) => {
+        const side = i % 2 ? 1 : -1;
+        const x = side * (9.5 + (i % 4) * 1.7);
+        const h = 2.6 + ((i * 7) % 8) * 0.75;
+        const w = 1.5 + (i % 3) * 0.7;
         return (
-          <group key={`tower-${i}`} position={[side * (10.2 + (i % 3) * 1.35), height * 0.5 - 0.05, z]}>
-            <mesh scale={[1.2 + (i % 3) * 0.35, height, 1.3 + (i % 4) * 0.25]}>
+          <group key={`city-${i}`} ref={(el) => { cityRefs.current[i] = el; }} position={[x, h * 0.5 - 0.1, -20 - i * 14]}>
+            <mesh scale={[w, h, 2.2]}>
               <boxGeometry />
-              <meshStandardMaterial color="#080a11" metalness={0.76} roughness={0.34} />
+              <meshStandardMaterial color="#070912" metalness={0.62} roughness={0.58} emissive={side > 0 ? '#07172a' : '#130922'} emissiveIntensity={0.36} />
             </mesh>
-            <mesh position={[side > 0 ? -1.23 : 1.23, 0.1, 0]} scale={[0.025, height * 0.72, 0.8]}>
-              <boxGeometry />
-              <meshBasicMaterial color={side > 0 ? '#52d4ff' : '#8e5cff'} transparent opacity={0.16 + (i % 3) * 0.06} toneMapped={false} />
-            </mesh>
+            {[-0.5, 0, 0.5].map((yy, k) => (
+              <mesh key={k} position={[side > 0 ? -w * 0.51 : w * 0.51, yy * h, 0]} scale={[0.02, 0.06, 1.55]}>
+                <boxGeometry />
+                <meshBasicMaterial color={side > 0 ? '#54dfff' : '#a26cff'} transparent opacity={0.35 + k * 0.08} toneMapped={false} />
+              </mesh>
+            ))}
           </group>
         );
       })}
@@ -325,144 +194,481 @@ function WorldArchitecture() {
   );
 }
 
-function CameraJourney({ progressRef }) {
-  const target = useMemo(() => new THREE.Vector3(), []);
+function EnemyFleet({ speed, gameRef, shockSeq, onHit, onNearMiss, onOvertake }) {
+  const refs = useRef([]);
+  const lastShock = useRef(shockSeq);
+  const configs = useMemo(() => Array.from({ length: 7 }, (_, i) => ({
+    lane: (i * 2 + 1) % LANES.length,
+    z: -24 - i * 24,
+    pace: 0.43 + (i % 4) * 0.055,
+    accent: i % 2 ? '#ff3f6f' : '#ff7b45',
+    accent2: i % 3 ? '#ffb044' : '#ff4b88',
+  })), []);
 
   useFrame((state, delta) => {
-    const p = THREE.MathUtils.clamp(progressRef.current, 0, 1);
-    const eased = p * p * (3 - 2 * p);
-    const targetZ = THREE.MathUtils.lerp(10.5, -92, eased);
-    const px = state.pointer.x;
-    const py = state.pointer.y;
-    const drift = Math.sin(eased * Math.PI * 4) * 0.7;
-    const targetX = px * 1.15 + drift;
-    const targetY = 3.1 + py * 0.5 + Math.sin(eased * Math.PI * 3) * 0.18;
+    if (lastShock.current !== shockSeq) {
+      lastShock.current = shockSeq;
+      refs.current.forEach((g) => {
+        if (!g) return;
+        g.userData.stun = 1.55;
+        g.userData.spin = (Math.random() > 0.5 ? 1 : -1) * 4.5;
+      });
+    }
 
-    state.camera.position.x = THREE.MathUtils.damp(state.camera.position.x, targetX, 3.4, delta);
-    state.camera.position.y = THREE.MathUtils.damp(state.camera.position.y, targetY, 3.4, delta);
-    state.camera.position.z = THREE.MathUtils.damp(state.camera.position.z, targetZ, 4.2, delta);
+    refs.current.forEach((g, i) => {
+      if (!g) return;
+      const cfg = configs[i];
+      g.userData.stun = Math.max(0, (g.userData.stun || 0) - delta);
+      const stunned = g.userData.stun > 0;
+      const approach = speed * cfg.pace * (stunned ? 1.55 : 1);
+      g.position.z += approach * delta;
 
-    target.set(targetX * 0.18, 2.25 + py * 0.10, targetZ - 13.5);
-    state.camera.lookAt(target);
+      const laneBase = LANES[(cfg.lane + (g.userData.cycle || 0)) % LANES.length];
+      const drift = Math.sin(state.clock.elapsedTime * (0.5 + i * 0.04) + i) * (i % 2 ? 0.42 : 0.24);
+      g.position.x = THREE.MathUtils.damp(g.position.x, laneBase + drift, stunned ? 2 : 4, delta);
+      g.position.y = 0.52 + Math.sin(state.clock.elapsedTime * 4.1 + i) * 0.025;
+      g.rotation.z = THREE.MathUtils.damp(g.rotation.z, stunned ? g.userData.spin * 0.14 : -drift * 0.035, 4, delta);
+      g.rotation.y = THREE.MathUtils.damp(g.rotation.y, drift * -0.018, 4, delta);
+
+      const dx = Math.abs(gameRef.current.playerX - g.position.x);
+      const inHitZone = g.position.z > 2.35 && g.position.z < 5.65;
+      if (inHitZone && dx < 1.0 && !g.userData.hit) {
+        g.userData.hit = true;
+        onHit(i);
+        g.userData.stun = 0.7;
+      }
+
+      if (g.position.z > 5.8 && !g.userData.scored && !g.userData.hit) {
+        g.userData.scored = true;
+        if (dx < 1.9) onNearMiss();
+        else onOvertake();
+      }
+
+      if (g.position.z > 12) {
+        g.position.z = -118 - i * 19 - Math.random() * 30;
+        g.userData.cycle = (g.userData.cycle || 0) + 1;
+        g.userData.hit = false;
+        g.userData.scored = false;
+        g.userData.stun = 0;
+      }
+    });
   });
 
-  return null;
+  return configs.map((cfg, i) => (
+    <group
+      key={`enemy-${i}`}
+      ref={(el) => {
+        refs.current[i] = el;
+        if (el && !el.userData.init) {
+          el.position.set(LANES[cfg.lane], 0.52, cfg.z);
+          el.userData.init = true;
+          el.userData.hit = false;
+          el.userData.scored = false;
+          el.userData.cycle = 0;
+          el.userData.stun = 0;
+        }
+      }}
+    >
+      <CarBody enemy accent={cfg.accent} accent2={cfg.accent2} />
+      <mesh position={[0, -0.2, 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.22, 32]} />
+        <meshBasicMaterial color={cfg.accent} transparent opacity={0.18} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </mesh>
+      <pointLight position={[0, 0.2, 1.35]} intensity={3.6} distance={5} color={cfg.accent} />
+    </group>
+  ));
 }
 
-function CinematicWorld({ progressRef }) {
+function PowerUps({ speed, gameRef, onPickup }) {
+  const refs = useRef([]);
+  const configs = useMemo(() => Array.from({ length: 6 }, (_, i) => ({
+    ...POWERS[i % POWERS.length],
+    lane: (i * 3 + 1) % LANES.length,
+    z: -40 - i * 34,
+  })), []);
+
+  useFrame((state, delta) => {
+    refs.current.forEach((g, i) => {
+      if (!g) return;
+      g.position.z += speed * delta * 0.62;
+      g.rotation.y += delta * 1.5;
+      g.rotation.x += delta * 0.45;
+      g.position.y = 1.05 + Math.sin(state.clock.elapsedTime * 2.4 + i) * 0.15;
+
+      const dx = Math.abs(gameRef.current.playerX - g.position.x);
+      if (!g.userData.collected && g.position.z > 2.3 && g.position.z < 5.5 && dx < 1.15) {
+        g.userData.collected = true;
+        onPickup(configs[i].type);
+      }
+      if (g.position.z > 12) {
+        g.position.z = -150 - i * 31 - Math.random() * 40;
+        g.position.x = LANES[(configs[i].lane + Math.floor(Math.random() * 3)) % LANES.length];
+        g.userData.collected = false;
+      }
+      g.visible = !g.userData.collected;
+    });
+  });
+
+  return configs.map((p, i) => (
+    <group
+      key={`power-${i}`}
+      ref={(el) => {
+        refs.current[i] = el;
+        if (el && !el.userData.init) {
+          el.position.set(LANES[p.lane], 1.05, p.z);
+          el.userData.init = true;
+          el.userData.collected = false;
+        }
+      }}
+    >
+      <mesh>
+        <octahedronGeometry args={[0.56, 1]} />
+        <meshPhysicalMaterial color="#0c1020" metalness={0.8} roughness={0.12} emissive={p.accent} emissiveIntensity={1.6} />
+      </mesh>
+      <mesh scale={1.38}>
+        <torusGeometry args={[0.62, 0.035, 10, 42]} />
+        <meshBasicMaterial color={p.color} transparent opacity={0.82} toneMapped={false} />
+      </mesh>
+      <pointLight intensity={5} distance={6} color={p.color} />
+    </group>
+  ));
+}
+
+function ShockWave({ seq }) {
+  const mesh = useRef(null);
+  const seen = useRef(seq);
+  const age = useRef(99);
+
+  useFrame((_, delta) => {
+    if (seen.current !== seq) {
+      seen.current = seq;
+      age.current = 0;
+    }
+    age.current += delta;
+    if (!mesh.current) return;
+    const t = Math.min(age.current / 0.85, 1);
+    mesh.current.visible = t < 1;
+    mesh.current.scale.setScalar(0.35 + t * 10.5);
+    mesh.current.material.opacity = (1 - t) * 0.75;
+  });
+
+  return (
+    <mesh ref={mesh} position={[0, 0.7, 2.8]} rotation={[Math.PI / 2, 0, 0]} visible={false}>
+      <torusGeometry args={[1, 0.04, 10, 64]} />
+      <meshBasicMaterial color="#b176ff" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+    </mesh>
+  );
+}
+
+function BrandSigns({ speed }) {
+  const refs = useRef([]);
+  const textures = useMemo(() => ['RAJA', 'KANNAN', 'MOTION', 'CGI', 'AI', 'PHOTO'].map((word, idx) => {
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 256;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = idx % 2 ? '#67dfff' : '#b176ff';
+    ctx.font = '700 132px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(word, 512, 134);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }), []);
+
+  useFrame((_, delta) => {
+    refs.current.forEach((g, i) => {
+      if (!g) return;
+      g.position.z += speed * delta * 0.9;
+      if (g.position.z > 10) g.position.z -= 170;
+    });
+  });
+
+  return textures.map((tex, i) => tex && (
+    <group key={i} ref={(el) => { refs.current[i] = el; }} position={[i % 2 ? 9.8 : -9.8, 3.8 + (i % 3), -36 - i * 27]} rotation={[0, i % 2 ? -0.34 : 0.34, 0]}>
+      <mesh>
+        <planeGeometry args={[7.2, 1.8]} />
+        <meshBasicMaterial map={tex} transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0, -0.08]} scale={[1.08, 1.32, 1]}>
+        <planeGeometry args={[7.2, 1.8]} />
+        <meshBasicMaterial color="#060810" transparent opacity={0.75} />
+      </mesh>
+    </group>
+  ));
+}
+
+function RaceRig({ boost, shield, shockSeq, gameRef, onHit, onNearMiss, onOvertake, onPickup }) {
+  const carRef = useRef(null);
+  const look = useMemo(() => new THREE.Vector3(0, 0.68, -24), []);
+  const speed = boost ? 36 : 24;
+
+  useFrame((state, delta) => {
+    const keys = gameRef.current.keys;
+    let keyboard = 0;
+    if (keys.left) keyboard -= 1;
+    if (keys.right) keyboard += 1;
+    const pointerTarget = THREE.MathUtils.clamp(state.pointer.x * 5.2, -4.5, 4.5);
+    const targetX = keyboard ? THREE.MathUtils.clamp(gameRef.current.playerX + keyboard * delta * 10, -4.5, 4.5) : pointerTarget;
+    gameRef.current.playerX = THREE.MathUtils.damp(gameRef.current.playerX, targetX, boost ? 8 : 6, delta);
+
+    if (carRef.current) {
+      const steer = THREE.MathUtils.clamp(targetX - gameRef.current.playerX, -1, 1);
+      carRef.current.position.x = gameRef.current.playerX;
+      carRef.current.position.y = 0.55 + Math.sin(state.clock.elapsedTime * 5.5) * 0.018;
+      carRef.current.rotation.z = THREE.MathUtils.damp(carRef.current.rotation.z, -steer * 0.22, 5, delta);
+      carRef.current.rotation.y = THREE.MathUtils.damp(carRef.current.rotation.y, -steer * 0.09, 5, delta);
+    }
+
+    const shake = gameRef.current.shake || 0;
+    gameRef.current.shake = Math.max(0, shake - delta * 1.8);
+    const jitterX = shake ? (Math.random() - 0.5) * shake * 0.24 : 0;
+    const jitterY = shake ? (Math.random() - 0.5) * shake * 0.16 : 0;
+
+    state.camera.position.x = THREE.MathUtils.damp(state.camera.position.x, gameRef.current.playerX * 0.14 + jitterX, 4, delta);
+    state.camera.position.y = THREE.MathUtils.damp(state.camera.position.y, (boost ? 3.12 : 3.3) + jitterY, 4, delta);
+    state.camera.position.z = THREE.MathUtils.damp(state.camera.position.z, boost ? 8.4 : 9.0, 4, delta);
+    state.camera.fov = THREE.MathUtils.damp(state.camera.fov, boost ? 61 : 56, 4.2, delta);
+    state.camera.updateProjectionMatrix();
+    look.x = gameRef.current.playerX * 0.055;
+    state.camera.lookAt(look);
+  });
+
   return (
     <>
-      <AuroraVoid />
-      <fog attach="fog" args={['#05060c', 17, 58]} />
-      <ambientLight intensity={0.34} />
-      <directionalLight position={[1, 10, 7]} intensity={1.4} color="#d8d1ff" />
-      <pointLight position={[-7, 3, 2]} intensity={8} distance={20} color="#8a55ff" />
-      <pointLight position={[7, 3, -4]} intensity={6} distance={20} color="#52d8ff" />
+      <Road speed={speed} />
+      <BrandSigns speed={speed} />
+      <EnemyFleet speed={speed} gameRef={gameRef} shockSeq={shockSeq} onHit={onHit} onNearMiss={onNearMiss} onOvertake={onOvertake} />
+      <PowerUps speed={speed} gameRef={gameRef} onPickup={onPickup} />
+      <ShockWave seq={shockSeq} />
+      <PlayerCar carRef={carRef} boost={boost} shield={shield} />
+    </>
+  );
+}
 
-      <Stars radius={65} depth={36} count={1100} factor={2.1} saturation={0.1} fade speed={0.45} />
-      <Sparkles count={150} scale={[24, 10, 120]} size={1.1} speed={0.24} opacity={0.28} color="#b98cff" />
-
-      <WorldArchitecture />
-      <TitleMonolith />
-      {PORTALS.map((portal, i) => <ProjectPortal key={portal.title} data={portal} index={i} />)}
-
-      <Float position={[-7.8, 4.8, -43]} speed={0.7} rotationIntensity={0.3} floatIntensity={0.8}>
-        <SculpturalObject accent="#8f5cff" index={0} />
-      </Float>
-      <Float position={[8.1, 5.2, -63]} speed={0.85} rotationIntensity={0.35} floatIntensity={0.7}>
-        <SculpturalObject accent="#55d9ff" index={1} />
-      </Float>
-      <Float position={[-7.4, 4.3, -83]} speed={0.75} rotationIntensity={0.4} floatIntensity={0.65}>
-        <SculpturalObject accent="#db6eff" index={2} />
-      </Float>
-
-      <CameraJourney progressRef={progressRef} />
+function Scene(props) {
+  return (
+    <>
+      <color attach="background" args={['#03040a']} />
+      <fog attach="fog" args={['#080611', 18, 92]} />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[0, 9, 7]} intensity={1.65} color="#ddd7ff" />
+      <pointLight position={[-6, 2.4, 4]} intensity={8} distance={22} color="#8655ff" />
+      <pointLight position={[6, 2.4, 4]} intensity={7} distance={22} color="#4ad9ff" />
+      <Stars radius={90} depth={55} count={1200} factor={2.2} saturation={0.15} fade speed={0.7} />
+      <Sparkles count={150} scale={[18, 7, 90]} size={1.2} speed={1.25} opacity={0.24} color="#b5b8ff" />
+      <RaceRig {...props} />
     </>
   );
 }
 
 export default function Hero() {
-  const sectionRef = useRef(null);
-  const progressRef = useRef(0);
-  const sectorRef = useRef(0);
-  const [sector, setSector] = useState(0);
+  const [pointerBoost, setPointerBoost] = useState(false);
+  const [keyboardBoost, setKeyboardBoost] = useState(false);
+  const [nitro, setNitro] = useState(false);
+  const [shield, setShield] = useState(false);
+  const [power, setPower] = useState(null);
+  const [shockSeq, setShockSeq] = useState(0);
+  const [score, setScore] = useState(0);
+  const [health, setHealth] = useState(100);
+  const [rivals, setRivals] = useState(7);
+  const [message, setMessage] = useState('MOVE TO STEER · HOLD TO BOOST');
+  const [flash, setFlash] = useState(0);
+  const gameRef = useRef({ playerX: 0, shake: 0, keys: { left: false, right: false } });
+  const timers = useRef([]);
+
+  const clearLater = useCallback((fn, ms) => {
+    const id = setTimeout(fn, ms);
+    timers.current.push(id);
+    return id;
+  }, []);
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  const boost = pointerBoost || keyboardBoost || nitro;
+
+  const usePower = useCallback(() => {
+    if (!power) return;
+    if (power === 'NITRO') {
+      setNitro(true);
+      setMessage('NITRO OVERDRIVE');
+      clearLater(() => setNitro(false), 2500);
+      clearLater(() => setMessage('MOVE TO STEER · HOLD TO BOOST'), 2900);
+    } else if (power === 'SHIELD') {
+      setShield(true);
+      setMessage('ION SHIELD ACTIVE');
+      clearLater(() => setShield(false), 4200);
+      clearLater(() => setMessage('MOVE TO STEER · HOLD TO BOOST'), 4550);
+    } else if (power === 'SHOCK') {
+      setShockSeq((v) => v + 1);
+      setScore((v) => v + 450);
+      setMessage('ELECTRO SHOCK RELEASED');
+      setFlash(0.38);
+      clearLater(() => setFlash(0), 220);
+      clearLater(() => setMessage('MOVE TO STEER · HOLD TO BOOST'), 1200);
+    }
+    setPower(null);
+  }, [power, clearLater]);
 
   useEffect(() => {
-    const update = () => {
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const travel = Math.max(1, el.offsetHeight - window.innerHeight);
-      const p = THREE.MathUtils.clamp(-rect.top / travel, 0, 1);
-      progressRef.current = p;
-      const next = Math.min(SECTORS.length - 1, Math.floor(p * SECTORS.length));
-      if (next !== sectorRef.current) {
-        sectorRef.current = next;
-        setSector(next);
+    const down = (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'a' || e.key === 'ArrowLeft') gameRef.current.keys.left = true;
+      if (key === 'd' || e.key === 'ArrowRight') gameRef.current.keys.right = true;
+      if (e.key === 'Shift') setKeyboardBoost(true);
+      if (e.code === 'Space') {
+        e.preventDefault();
+        usePower();
       }
     };
-
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
+    const up = (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'a' || e.key === 'ArrowLeft') gameRef.current.keys.left = false;
+      if (key === 'd' || e.key === 'ArrowRight') gameRef.current.keys.right = false;
+      if (e.key === 'Shift') setKeyboardBoost(false);
     };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, [usePower]);
+
+  const onHit = useCallback(() => {
+    gameRef.current.shake = shield ? 0.45 : 1;
+    setFlash(shield ? 0.25 : 0.65);
+    clearLater(() => setFlash(0), 180);
+    if (shield) {
+      setScore((v) => v + 180);
+      setMessage('SHIELD IMPACT +180');
+    } else {
+      setHealth((v) => {
+        const next = Math.max(0, v - 25);
+        if (next === 0) {
+          clearLater(() => setHealth(100), 900);
+          setMessage('SYSTEM REBOOT');
+        } else setMessage('IMPACT — RECOVER');
+        return next;
+      });
+    }
+    clearLater(() => setMessage('MOVE TO STEER · HOLD TO BOOST'), 1100);
+  }, [shield, clearLater]);
+
+  const onNearMiss = useCallback(() => {
+    setScore((v) => v + 120);
+    setMessage('NEAR MISS +120');
+    clearLater(() => setMessage('MOVE TO STEER · HOLD TO BOOST'), 650);
+  }, [clearLater]);
+
+  const onOvertake = useCallback(() => {
+    setScore((v) => v + 40);
+  }, []);
+
+  const onPickup = useCallback((type) => {
+    setPower(type);
+    setScore((v) => v + 90);
+    setMessage(`${type} ACQUIRED · SPACE / TAP TO FIRE`);
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative h-[230svh] bg-ink">
-      <div className="sticky top-0 h-svh min-h-[720px] overflow-hidden bg-[#04050a]">
+    <section className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink pt-20 md:pt-24">
+      <div
+        className="relative h-[calc(100svh-80px)] min-h-[740px] w-full overflow-hidden bg-[#03040a]"
+        onPointerDown={(e) => {
+          if (e.target.closest?.('a,button')) return;
+          setPointerBoost(true);
+        }}
+        onPointerUp={() => setPointerBoost(false)}
+        onPointerCancel={() => setPointerBoost(false)}
+        onPointerLeave={() => setPointerBoost(false)}
+        style={{ touchAction: 'none' }}
+      >
         <Canvas
-          dpr={[1, 1.5]}
-          camera={{ position: [0, 3.1, 10.5], fov: 52, near: 0.1, far: 180 }}
-          gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
+          dpr={[1, 1.65]}
+          camera={{ position: [0, 3.3, 9], fov: 56, near: 0.1, far: 230 }}
+          shadows
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
+          onCreated={({ gl }) => {
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.18;
+          }}
         >
           <Suspense fallback={null}>
-            <CinematicWorld progressRef={progressRef} />
+            <Scene
+              boost={boost}
+              shield={shield}
+              shockSeq={shockSeq}
+              gameRef={gameRef}
+              onHit={onHit}
+              onNearMiss={onNearMiss}
+              onOvertake={onOvertake}
+              onPickup={onPickup}
+            />
           </Suspense>
         </Canvas>
 
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,4,9,.48),transparent_18%,transparent_74%,rgba(3,4,9,.74)),radial-gradient(circle_at_50%_48%,transparent_35%,rgba(3,4,9,.42)_100%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-ink/70 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,4,10,.18),transparent_32%,transparent_70%,rgba(3,4,10,.62)),radial-gradient(circle_at_50%_52%,transparent_30%,rgba(3,4,10,.12)_65%,rgba(3,4,10,.48)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-ink/65 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 transition-opacity duration-150" style={{ opacity: flash, background: 'radial-gradient(circle at 50% 58%, rgba(190,125,255,.85), rgba(83,177,255,.18) 34%, transparent 70%)', mixBlendMode: 'screen' }} />
 
-        <div className="pointer-events-none absolute left-[clamp(22px,3.6vw,72px)] top-[clamp(88px,9vw,132px)] z-20 max-w-[620px]">
-          <div className="flex items-center gap-3 font-mono text-[9px] tracking-[0.25em] text-bone/44">
-            <span className="h-1.5 w-1.5 rounded-full bg-orchid shadow-[0_0_14px_rgba(164,107,240,.8)]" />
-            WEBGL WORLD // 2026
+        <div className="pointer-events-none absolute left-[clamp(20px,3.8vw,72px)] top-[clamp(24px,4vw,58px)] z-20">
+          <div className="flex items-center gap-3 font-mono text-[8px] tracking-[0.3em] text-bone/40 md:text-[10px]">
+            <span className="h-1.5 w-1.5 rounded-full bg-orchid shadow-[0_0_16px_rgba(164,107,240,.9)]" />
+            RK // COMBAT RUN 2026
           </div>
-          <div className="mt-3 text-[clamp(1rem,1.3vw,1.45rem)] font-light tracking-[-0.02em] text-bone/72">
-            {SECTORS[sector].title} — {SECTORS[sector].label}
-          </div>
+          <h1 className="mt-3 text-[clamp(2.7rem,6vw,7.2rem)] font-semibold leading-[0.82] tracking-[-0.06em] text-bone/92 mix-blend-screen">
+            RAJA KANNAN
+          </h1>
+          <div className="mt-3 font-mono text-[8px] tracking-[0.2em] text-bone/36 md:text-[9px]">MOTION · 3D · AI · PHOTO · CREATIVE TECHNOLOGY</div>
         </div>
 
-        <div className="absolute right-[clamp(20px,3vw,56px)] top-[clamp(92px,9vw,134px)] z-30 hidden flex-col items-end gap-3 md:flex">
-          {SECTORS.map((item, i) => (
-            <div key={item.title} className="flex items-center gap-3">
-              <span className={`font-mono text-[8px] tracking-[0.18em] transition-colors ${i === sector ? 'text-bone/80' : 'text-bone/25'}`}>{item.label}</span>
-              <span className={`h-px transition-all duration-500 ${i === sector ? 'w-8 bg-orchid' : 'w-3 bg-bone/18'}`} />
-            </div>
-          ))}
+        <div className="pointer-events-none absolute right-[clamp(18px,3vw,52px)] top-[clamp(24px,3.5vw,54px)] z-20 min-w-[180px] text-right font-mono">
+          <div className="text-[8px] tracking-[0.24em] text-bone/32">SCORE</div>
+          <div className="mt-1 text-[clamp(1.7rem,2.4vw,3rem)] font-light tracking-[-0.04em] text-bone">{String(score).padStart(6, '0')}</div>
+          <div className="mt-4 flex justify-end gap-5 text-[8px] tracking-[0.2em] text-bone/32">
+            <span>RIVALS {String(rivals).padStart(2, '0')}</span>
+            <span>{boost ? 'BOOST' : 'CRUISE'} {boost ? '360' : '240'}</span>
+          </div>
+          <div className="mt-3 ml-auto h-[3px] w-[150px] overflow-hidden rounded-full bg-bone/10">
+            <div className={`h-full transition-all duration-300 ${health > 50 ? 'bg-cyan-300/80' : health > 25 ? 'bg-amber-300/80' : 'bg-rose-400/90'}`} style={{ width: `${health}%` }} />
+          </div>
+          <div className="mt-1 text-[7px] tracking-[0.2em] text-bone/28">INTEGRITY {health}%</div>
         </div>
 
-        <div className="absolute inset-x-0 bottom-[clamp(24px,3vw,46px)] z-30 flex flex-col gap-5 px-[clamp(22px,4vw,76px)] md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-wrap gap-3">
-            <Link href="/work" className="rounded-full border border-orchid/45 bg-orchid/14 px-6 py-3.5 font-mono text-[10px] tracking-[0.16em] text-bone backdrop-blur-md transition-all hover:border-orchid/80 hover:bg-orchid/24">ENTER THE WORK →</Link>
-            <Link href="/about" className="rounded-full border border-bone/12 bg-ink/32 px-6 py-3.5 font-mono text-[10px] tracking-[0.16em] text-bone/62 backdrop-blur-md transition-all hover:border-bone/30 hover:text-bone">ABOUT</Link>
-          </div>
-
-          <div className="pointer-events-none flex flex-col items-start gap-2 md:items-end">
-            <div className="flex items-center gap-3 font-mono text-[9px] tracking-[0.18em] text-bone/44">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300/80" />
-              SCROLL TO TRAVEL
-            </div>
-            <div className="font-mono text-[8px] tracking-[0.18em] text-bone/26">MOVE CURSOR TO LOOK · CLICK A WORLD TO ENTER</div>
-          </div>
+        <div className="pointer-events-none absolute left-1/2 top-[18%] z-20 -translate-x-1/2 text-center">
+          <div className="font-mono text-[8px] tracking-[0.3em] text-bone/25">ARCADE COMBAT RACING</div>
+          <div key={message} className="mt-2 rounded-full border border-bone/8 bg-ink/25 px-4 py-2 font-mono text-[8px] tracking-[0.18em] text-bone/55 backdrop-blur-sm md:text-[9px]">{message}</div>
         </div>
 
-        <div className="pointer-events-none absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-orchid via-fuchsia-400 to-cyan-300 transition-[width] duration-150" style={{ width: `${Math.max(2, progressRef.current * 100)}%` }} />
+        <div className="absolute bottom-[clamp(24px,3vw,46px)] left-[clamp(20px,3.8vw,72px)] z-30 flex flex-wrap items-end gap-3">
+          <Link href="/work" className="rounded-full border border-orchid/45 bg-orchid/14 px-5 py-3 font-mono text-[9px] tracking-[0.17em] text-bone backdrop-blur-md transition-all hover:border-orchid/80 hover:bg-orchid/24 md:px-6 md:py-3.5 md:text-[10px]">
+            ENTER THE WORK →
+          </Link>
+          <Link href="/about" className="rounded-full border border-bone/12 bg-ink/30 px-5 py-3 font-mono text-[9px] tracking-[0.17em] text-bone/62 backdrop-blur-md transition-all hover:border-bone/30 hover:text-bone md:px-6 md:py-3.5 md:text-[10px]">
+            ABOUT
+          </Link>
+        </div>
+
+        <div className="absolute bottom-[clamp(24px,3vw,46px)] right-[clamp(20px,3vw,52px)] z-30 flex items-end gap-4">
+          <div className="pointer-events-none hidden text-right font-mono text-[8px] leading-[1.9] tracking-[0.18em] text-bone/30 md:block">
+            A / D OR MOUSE — STEER<br />HOLD — BOOST · SPACE — POWER
+          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); usePower(); }}
+            disabled={!power}
+            className={`relative flex h-[68px] w-[68px] items-center justify-center rounded-full border font-mono text-[8px] tracking-[0.12em] backdrop-blur-md transition-all md:h-[78px] md:w-[78px] ${power ? 'border-orchid/70 bg-orchid/18 text-bone shadow-[0_0_36px_rgba(154,88,255,.22)] hover:scale-105 hover:bg-orchid/28' : 'cursor-default border-bone/10 bg-ink/35 text-bone/24'}`}
+          >
+            <span className="text-center leading-[1.35]">{power || 'POWER'}<br /><span className="text-[6px] opacity-55">{power ? 'FIRE' : 'EMPTY'}</span></span>
+          </button>
+        </div>
+
+        <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 z-10 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-bone/[0.025] to-transparent" />
       </div>
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orchid/30 to-transparent" />
     </section>
   );
 }
