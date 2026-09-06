@@ -5,120 +5,310 @@ import Link from 'next/link';
 import { VioletButton, GhostButton } from '../ui/bits';
 
 const ROLES = ['MOTION DESIGNER', '3D ARTIST', 'AI VISUAL CREATOR', 'PHOTOGRAPHER'];
+const SIGNALS = ['MOTION', '3D', 'AI', 'PHOTO', 'REALTIME', 'DESIGN', 'TECH'];
 
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function HeroGame() {
+  const canvasRef = useRef(null);
+  const wrapRef = useRef(null);
+  const frameRef = useRef(null);
+  const stateRef = useRef(null);
+  const [score, setScore] = useState(0);
+  const [won, setWon] = useState(false);
+  const [started, setStarted] = useState(false);
 
-export default function Hero({ site }) {
-  const overlayRef = useRef(null);
-  const cursorRef = useRef(null);
-  const animationRef = useRef(null);
-  const timersRef = useRef([]);
-  const currentRadiusRef = useRef(0);
-  const originRef = useRef({ x: 52, y: 42 });
-  const [phase, setPhase] = useState('idle');
+  const resetGame = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
+    const pad = Math.min(90, w * 0.12);
+    const nodes = SIGNALS.map((label, i) => {
+      const angle = (Math.PI * 2 * i) / SIGNALS.length + 0.35;
+      const rx = w * (0.26 + (i % 3) * 0.035);
+      const ry = h * (0.25 + ((i + 1) % 3) * 0.035);
+      return {
+        label,
+        x: w / 2 + Math.cos(angle) * rx,
+        y: h / 2 + Math.sin(angle) * ry,
+        baseX: w / 2 + Math.cos(angle) * rx,
+        baseY: h / 2 + Math.sin(angle) * ry,
+        phase: i * 0.9,
+        collected: false,
+      };
+    });
+    stateRef.current = {
+      w,
+      h,
+      time: 0,
+      pointer: { x: w * 0.5, y: h * 0.54 },
+      player: { x: w * 0.5, y: h * 0.54, vx: 0, vy: 0 },
+      nodes,
+      bursts: [],
+      trail: [],
+      stars: Array.from({ length: 88 }, (_, i) => ({
+        x: (i * 97.13) % w,
+        y: (i * 53.71) % h,
+        r: 0.45 + ((i * 11) % 17) / 17,
+        a: 0.12 + ((i * 7) % 19) / 40,
+      })),
+    };
+    setScore(0);
+    setWon(false);
+    setStarted(false);
+  };
 
   useEffect(() => {
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      timersRef.current.forEach(clearTimeout);
+    const canvas = canvasRef.current;
+    const wrap = wrapRef.current;
+    if (!canvas || !wrap) return undefined;
+
+    const resize = () => {
+      const rect = wrap.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      resetGame();
     };
-  }, []);
 
-  const paintMask = (x, y, radius) => {
-    const overlay = overlayRef.current;
-    if (!overlay) return;
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(wrap);
 
-    if (radius <= 1) {
-      overlay.style.opacity = '0';
-      overlay.style.webkitMaskImage = 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)';
-      overlay.style.maskImage = 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)';
+    const draw = () => {
+      const s = stateRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!s || !ctx) {
+        frameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      s.time += 0.016;
+      const { w, h } = s;
+      ctx.clearRect(0, 0, w, h);
+
+      const bg = ctx.createRadialGradient(w * 0.52, h * 0.46, 20, w * 0.52, h * 0.46, Math.max(w, h) * 0.72);
+      bg.addColorStop(0, 'rgba(91,61,170,0.16)');
+      bg.addColorStop(0.42, 'rgba(25,19,52,0.13)');
+      bg.addColorStop(1, 'rgba(3,4,8,0)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      for (const star of s.stars) {
+        const twinkle = 0.55 + Math.sin(s.time * 1.7 + star.x * 0.01) * 0.25;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,194,255,${star.a * twinkle})`;
+        ctx.fill();
+      }
+
+      const p = s.player;
+      const ease = 0.075;
+      p.vx = (s.pointer.x - p.x) * ease;
+      p.vy = (s.pointer.y - p.y) * ease;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      s.trail.push({ x: p.x, y: p.y, life: 1 });
+      if (s.trail.length > 32) s.trail.shift();
+      for (const t of s.trail) t.life *= 0.92;
+      if (s.trail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(s.trail[0].x, s.trail[0].y);
+        for (let i = 1; i < s.trail.length; i += 1) ctx.lineTo(s.trail[i].x, s.trail[i].y);
+        const trailGradient = ctx.createLinearGradient(s.trail[0].x, s.trail[0].y, p.x, p.y);
+        trailGradient.addColorStop(0, 'rgba(90,76,255,0)');
+        trailGradient.addColorStop(0.55, 'rgba(103,122,255,0.18)');
+        trailGradient.addColorStop(1, 'rgba(188,94,255,0.62)');
+        ctx.strokeStyle = trailGradient;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      let liveCount = 0;
+      s.nodes.forEach((node, i) => {
+        if (node.collected) return;
+        liveCount += 1;
+        node.x = node.baseX + Math.sin(s.time * 0.72 + node.phase) * 18;
+        node.y = node.baseY + Math.cos(s.time * 0.58 + node.phase * 1.3) * 15;
+
+        const dx = p.x - node.x;
+        const dy = p.y - node.y;
+        const dist = Math.hypot(dx, dy);
+        if (!won && dist < 31) {
+          node.collected = true;
+          const nextScore = SIGNALS.length - (liveCount - 1);
+          setScore(nextScore);
+          for (let b = 0; b < 18; b += 1) {
+            const a = (Math.PI * 2 * b) / 18;
+            const speed = 1.4 + (b % 5) * 0.42;
+            s.bursts.push({ x: node.x, y: node.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 1 });
+          }
+          if (nextScore >= SIGNALS.length) setWon(true);
+          return;
+        }
+
+        const pulse = 1 + Math.sin(s.time * 2.2 + i) * 0.09;
+        ctx.save();
+        ctx.translate(node.x, node.y);
+        ctx.scale(pulse, pulse);
+        ctx.beginPath();
+        ctx.arc(0, 0, 19, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(161,113,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(175,112,255,0.92)';
+        ctx.shadowColor = 'rgba(150,92,255,0.9)';
+        ctx.shadowBlur = 18;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.letterSpacing = '1px';
+        ctx.fillStyle = 'rgba(226,220,255,0.62)';
+        ctx.textAlign = 'center';
+        ctx.fillText(node.label, 0, 36);
+        ctx.restore();
+      });
+
+      s.bursts = s.bursts.filter((b) => b.life > 0.03);
+      s.bursts.forEach((b) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        b.life *= 0.955;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 1.3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180,120,255,${b.life})`;
+        ctx.fill();
+      });
+
+      if (won) {
+        const pulse = 0.5 + 0.5 * Math.sin(s.time * 2.4);
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        for (let r = 0; r < 3; r += 1) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 54 + r * 21 + pulse * 7, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(${r === 1 ? '112,205,255' : '176,104,255'},${0.28 - r * 0.055})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        const portal = ctx.createRadialGradient(cx, cy, 0, cx, cy, 54);
+        portal.addColorStop(0, 'rgba(235,222,255,0.95)');
+        portal.addColorStop(0.16, 'rgba(178,111,255,0.72)');
+        portal.addColorStop(0.55, 'rgba(89,71,235,0.24)');
+        portal.addColorStop(1, 'rgba(89,71,235,0)');
+        ctx.fillStyle = portal;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 58, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      const rot = Math.atan2(p.vy, p.vx || 0.001) + Math.PI / 2;
+      ctx.rotate(rot);
+      ctx.shadowColor = 'rgba(165,104,255,0.95)';
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.moveTo(0, -13);
+      ctx.lineTo(9, 10);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(-9, 10);
+      ctx.closePath();
+      const ship = ctx.createLinearGradient(-9, -10, 9, 10);
+      ship.addColorStop(0, '#d9c7ff');
+      ship.addColorStop(0.55, '#9d68ff');
+      ship.addColorStop(1, '#65d7ff');
+      ctx.fillStyle = ship;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      frameRef.current = requestAnimationFrame(draw);
+    };
+
+    frameRef.current = requestAnimationFrame(draw);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frameRef.current);
+    };
+  }, [won]);
+
+  const updatePointer = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!stateRef.current) return;
+    stateRef.current.pointer.x = Math.max(18, Math.min(rect.width - 18, event.clientX - rect.left));
+    stateRef.current.pointer.y = Math.max(18, Math.min(rect.height - 18, event.clientY - rect.top));
+    if (!started) setStarted(true);
+  };
+
+  const clickGame = (event) => {
+    if (!won) {
+      updatePointer(event);
       return;
     }
-
-    const feather = Math.min(120, Math.max(56, radius * 0.18));
-    const solid = Math.max(0, radius - feather);
-    const mid1 = Math.max(0, radius - feather * 0.72);
-    const mid2 = Math.max(0, radius - feather * 0.38);
-    const edge = radius + feather * 0.18;
-
-    const gradient = `radial-gradient(circle at ${x}% ${y}%, #000 0px, #000 ${solid}px, rgba(0,0,0,.92) ${mid1}px, rgba(0,0,0,.58) ${mid2}px, rgba(0,0,0,.18) ${radius}px, transparent ${edge}px)`;
-
-    overlay.style.opacity = '1';
-    overlay.style.webkitMaskImage = gradient;
-    overlay.style.maskImage = gradient;
-  };
-
-  const animateRadius = (from, to, duration, easing, onDone) => {
-    if (animationRef.current) cancelAnimationFrame(animationRef.current);
-    const started = performance.now();
-
-    const frame = (now) => {
-      const p = Math.min(1, (now - started) / duration);
-      const eased = easing(p);
-      const radius = from + (to - from) * eased;
-      currentRadiusRef.current = radius;
-      paintMask(originRef.current.x, originRef.current.y, radius);
-
-      if (p < 1) {
-        animationRef.current = requestAnimationFrame(frame);
-      } else {
-        animationRef.current = null;
-        onDone?.();
-      }
-    };
-
-    animationRef.current = requestAnimationFrame(frame);
-  };
-
-  const triggerReveal = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const localX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
-    const localY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-    const x = (localX / rect.width) * 100;
-    const y = (localY / rect.height) * 100;
-    const farX = Math.max(localX, rect.width - localX);
-    const farY = Math.max(localY, rect.height - localY);
-    const maxRadius = Math.hypot(farX, farY) + 180;
-
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-
-    originRef.current = { x, y };
-    setPhase('opening');
-
-    const startRadius = Math.max(8, currentRadiusRef.current);
-    animateRadius(startRadius, maxRadius, 1850, easeOutCubic, () => {
-      setPhase('hold');
-      timersRef.current.push(
-        setTimeout(() => {
-          setPhase('closing');
-          animateRadius(currentRadiusRef.current, 0, 1550, easeInOutCubic, () => {
-            currentRadiusRef.current = 0;
-            paintMask(x, y, 0);
-            setPhase('idle');
-          });
-        }, 1250),
-      );
-    });
-  };
-
-  const moveHoverCursor = (event) => {
-    const cursor = cursorRef.current;
-    if (!cursor) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    cursor.style.opacity = '1';
-    cursor.style.transform = `translate3d(${x + 16}px, ${y + 16}px, 0)`;
+    const cx = rect.width * 0.5;
+    const cy = rect.height * 0.5;
+    if (Math.hypot(x - cx, y - cy) < 105) window.location.href = '/work';
   };
 
-  const hideHoverCursor = () => {
-    if (cursorRef.current) cursorRef.current.style.opacity = '0';
-  };
+  return (
+    <div
+      ref={wrapRef}
+      className="group relative z-10 min-h-[650px] overflow-hidden rounded-[24px] border border-bone/[0.07] bg-[#05060a] xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none"
+      onPointerMove={updatePointer}
+      onPointerDown={clickGame}
+      style={{ touchAction: 'none', cursor: won ? 'pointer' : 'crosshair' }}
+      role="application"
+      aria-label="Signal Runner mini game. Move the cursor to collect seven creative signals."
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,10,.48),transparent_23%,transparent_80%,rgba(5,6,10,.22))]" />
 
-  const cyberActive = phase === 'opening' || phase === 'hold';
+      <div className="pointer-events-none absolute left-6 top-6 z-20">
+        <div className="font-mono text-[9px] tracking-[0.24em] text-bone/42">INTERACTIVE // 01</div>
+        <div className="mt-2 text-[clamp(1.1rem,1.4vw,1.65rem)] font-light tracking-[-0.02em] text-bone">SIGNAL RUNNER</div>
+        <p className="mt-2 max-w-[250px] font-mono text-[9px] leading-[1.8] tracking-[0.14em] text-bone/42">
+          {won ? 'PORTAL OPEN — ENTER THE WORK' : started ? 'COLLECT ALL CREATIVE SIGNALS' : 'MOVE TO PILOT · COLLECT 07 SIGNALS'}
+        </p>
+      </div>
 
+      <div className="pointer-events-none absolute right-6 top-6 z-20 text-right font-mono">
+        <div className="text-[9px] tracking-[0.2em] text-bone/34">SIGNALS</div>
+        <div className="mt-1 text-3xl font-light text-bone">{String(score).padStart(2, '0')}<span className="text-bone/20"> / 07</span></div>
+      </div>
+
+      <div className={`pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 translate-y-[88px] text-center transition-all duration-500 ${won ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="font-mono text-[10px] tracking-[0.28em] text-orchid">PORTAL OPEN</div>
+        <div className="mt-2 font-mono text-[9px] tracking-[0.18em] text-bone/50">CLICK THE CORE → WORK</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); resetGame(); }}
+        className="absolute bottom-6 right-6 z-30 rounded-full border border-bone/10 bg-ink/50 px-4 py-2.5 font-mono text-[9px] tracking-[0.18em] text-bone/48 backdrop-blur-md transition-colors hover:border-orchid/35 hover:text-bone"
+      >
+        RESET
+      </button>
+
+      <div className="pointer-events-none absolute bottom-6 left-6 z-20 flex items-center gap-3 font-mono text-[8px] tracking-[0.18em] text-bone/32">
+        <span className="h-1.5 w-1.5 rounded-full bg-orchid shadow-[0_0_12px_rgba(164,107,240,.75)]" />
+        MOUSE / TOUCH CONTROL
+      </div>
+    </div>
+  );
+}
+
+export default function Hero({ site }) {
   return (
     <section className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink px-6 pb-4 pt-24 md:px-[clamp(36px,4vw,80px)] md:pt-28 xl:min-h-[calc(100svh-48px)] xl:px-[clamp(48px,4.2vw,96px)] xl:pt-24">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(62%_90%_at_76%_38%,rgba(112,82,255,0.13),transparent_58%),radial-gradient(40%_70%_at_47%_46%,rgba(84,55,180,0.06),transparent_66%)]" />
@@ -196,80 +386,7 @@ export default function Hero({ site }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={triggerReveal}
-          onPointerEnter={moveHoverCursor}
-          onPointerMove={moveHoverCursor}
-          onPointerLeave={hideHoverCursor}
-          className="group relative z-10 min-h-[650px] overflow-hidden rounded-[24px] bg-[#06070a] text-left outline-none ring-0 xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none"
-          style={{ cursor: 'pointer' }}
-          aria-label="Reveal cyber version of the character"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_42%,rgba(103,69,190,0.10),transparent_58%)]" />
-
-          <div className="pointer-events-none absolute inset-0 flex items-start justify-center overflow-hidden">
-            <img
-              src="/img/Normal.png"
-              alt="Normal version of the portfolio character"
-              draggable="false"
-              className="h-full w-full select-none object-contain object-top transition-transform duration-[1800ms] ease-out group-hover:scale-[1.006]"
-              style={{ transformOrigin: '50% 26%' }}
-            />
-          </div>
-
-          <div
-            ref={overlayRef}
-            className="pointer-events-none absolute inset-0 flex items-start justify-center overflow-hidden opacity-0 will-change-[mask-image,opacity]"
-            style={{
-              WebkitMaskImage: 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)',
-              maskImage: 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)',
-            }}
-          >
-            <img
-              src="/img/Cyber.png"
-              alt="Cyber version of the portfolio character"
-              draggable="false"
-              className="h-full w-full select-none object-contain object-top"
-            />
-          </div>
-
-          <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-700"
-            style={{
-              opacity: cyberActive ? 1 : 0,
-              background: 'radial-gradient(circle at 55% 40%, rgba(126,82,255,.09), transparent 52%)',
-              mixBlendMode: 'screen',
-            }}
-          />
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-28 bg-gradient-to-t from-ink/34 to-transparent" />
-
-          <div className="pointer-events-none absolute left-6 top-6 z-30 flex items-center gap-3 rounded-full border border-bone/10 bg-ink/42 px-4 py-2.5 backdrop-blur-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-orchid/80 shadow-[0_0_12px_rgba(164,107,240,.55)]" />
-            <span className="font-mono text-[9px] tracking-[0.2em] text-bone/65">CLICK TO SHIFT</span>
-          </div>
-
-          <div className="pointer-events-none absolute bottom-6 left-6 z-30 flex gap-4 font-mono text-[9px] tracking-[0.2em]">
-            <span className={cyberActive ? 'text-bone/30' : 'text-bone/65'}>NORMAL</span>
-            <span className="text-bone/20">/</span>
-            <span className={cyberActive ? 'text-orchid' : 'text-orchid/45'}>CYBER</span>
-          </div>
-
-          <div
-            ref={cursorRef}
-            className="pointer-events-none absolute left-0 top-0 z-40 flex items-center gap-2 opacity-0 transition-opacity duration-150"
-            aria-hidden="true"
-          >
-            <span className="relative block h-4 w-4">
-              <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-bone/75" />
-              <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-bone/75" />
-            </span>
-            <span className="rounded-full border border-bone/15 bg-ink/70 px-2.5 py-1.5 font-mono text-[8px] tracking-[0.18em] text-bone/75 backdrop-blur-md">
-              {phase === 'idle' ? 'SHIFT' : phase === 'closing' ? 'RESETTING' : 'SHIFTING'}
-            </span>
-          </div>
-        </button>
+        <HeroGame />
       </div>
     </section>
   );
