@@ -6,35 +6,118 @@ import { VioletButton, GhostButton } from '../ui/bits';
 
 const ROLES = ['MOTION DESIGNER', '3D ARTIST', 'AI VISUAL CREATOR', 'PHOTOGRAPHER'];
 
-export default function Hero({ site }) {
-  const timerRef = useRef([]);
-  const [reveal, setReveal] = useState({ x: 52, y: 42, phase: 'idle' });
+const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-  useEffect(() => () => timerRef.current.forEach(clearTimeout), []);
+export default function Hero({ site }) {
+  const overlayRef = useRef(null);
+  const cursorRef = useRef(null);
+  const animationRef = useRef(null);
+  const timersRef = useRef([]);
+  const currentRadiusRef = useRef(0);
+  const originRef = useRef({ x: 52, y: 42 });
+  const [phase, setPhase] = useState('idle');
+
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      timersRef.current.forEach(clearTimeout);
+    };
+  }, []);
+
+  const paintMask = (x, y, radius) => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    if (radius <= 1) {
+      overlay.style.opacity = '0';
+      overlay.style.webkitMaskImage = 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)';
+      overlay.style.maskImage = 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)';
+      return;
+    }
+
+    const feather = Math.min(120, Math.max(56, radius * 0.18));
+    const solid = Math.max(0, radius - feather);
+    const mid1 = Math.max(0, radius - feather * 0.72);
+    const mid2 = Math.max(0, radius - feather * 0.38);
+    const edge = radius + feather * 0.18;
+
+    const gradient = `radial-gradient(circle at ${x}% ${y}%, #000 0px, #000 ${solid}px, rgba(0,0,0,.92) ${mid1}px, rgba(0,0,0,.58) ${mid2}px, rgba(0,0,0,.18) ${radius}px, transparent ${edge}px)`;
+
+    overlay.style.opacity = '1';
+    overlay.style.webkitMaskImage = gradient;
+    overlay.style.maskImage = gradient;
+  };
+
+  const animateRadius = (from, to, duration, easing, onDone) => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    const started = performance.now();
+
+    const frame = (now) => {
+      const p = Math.min(1, (now - started) / duration);
+      const eased = easing(p);
+      const radius = from + (to - from) * eased;
+      currentRadiusRef.current = radius;
+      paintMask(originRef.current.x, originRef.current.y, radius);
+
+      if (p < 1) {
+        animationRef.current = requestAnimationFrame(frame);
+      } else {
+        animationRef.current = null;
+        onDone?.();
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(frame);
+  };
 
   const triggerReveal = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const x = Math.max(4, Math.min(96, ((event.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(4, Math.min(96, ((event.clientY - rect.top) / rect.height) * 100));
+    const localX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    const localY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+    const x = (localX / rect.width) * 100;
+    const y = (localY / rect.height) * 100;
+    const farX = Math.max(localX, rect.width - localX);
+    const farY = Math.max(localY, rect.height - localY);
+    const maxRadius = Math.hypot(farX, farY) + 180;
 
-    timerRef.current.forEach(clearTimeout);
-    timerRef.current = [];
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
 
-    setReveal({ x, y, phase: 'armed' });
+    originRef.current = { x, y };
+    setPhase('opening');
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setReveal({ x, y, phase: 'open' }));
+    const startRadius = Math.max(8, currentRadiusRef.current);
+    animateRadius(startRadius, maxRadius, 1850, easeOutCubic, () => {
+      setPhase('hold');
+      timersRef.current.push(
+        setTimeout(() => {
+          setPhase('closing');
+          animateRadius(currentRadiusRef.current, 0, 1550, easeInOutCubic, () => {
+            currentRadiusRef.current = 0;
+            paintMask(x, y, 0);
+            setPhase('idle');
+          });
+        }, 1250),
+      );
     });
-
-    timerRef.current.push(
-      setTimeout(() => setReveal({ x, y, phase: 'hold' }), 950),
-      setTimeout(() => setReveal({ x, y, phase: 'close' }), 1850),
-      setTimeout(() => setReveal({ x, y, phase: 'idle' }), 2850),
-    );
   };
 
-  const radius = reveal.phase === 'open' || reveal.phase === 'hold' ? 170 : 0;
-  const cyberOpacity = reveal.phase === 'idle' ? 0 : 1;
+  const moveHoverCursor = (event) => {
+    const cursor = cursorRef.current;
+    if (!cursor) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    cursor.style.opacity = '1';
+    cursor.style.transform = `translate3d(${x + 16}px, ${y + 16}px, 0)`;
+  };
+
+  const hideHoverCursor = () => {
+    if (cursorRef.current) cursorRef.current.style.opacity = '0';
+  };
+
+  const cyberActive = phase === 'opening' || phase === 'hold';
 
   return (
     <section className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink px-6 pb-4 pt-24 md:px-[clamp(36px,4vw,80px)] md:pt-28 xl:min-h-[calc(100svh-48px)] xl:px-[clamp(48px,4.2vw,96px)] xl:pt-24">
@@ -116,7 +199,11 @@ export default function Hero({ site }) {
         <button
           type="button"
           onClick={triggerReveal}
-          className="group relative z-10 min-h-[650px] cursor-pointer overflow-hidden rounded-[24px] bg-[#06070a] text-left outline-none ring-0 xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none"
+          onPointerEnter={moveHoverCursor}
+          onPointerMove={moveHoverCursor}
+          onPointerLeave={hideHoverCursor}
+          className="group relative z-10 min-h-[650px] overflow-hidden rounded-[24px] bg-[#06070a] text-left outline-none ring-0 xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none"
+          style={{ cursor: 'pointer' }}
           aria-label="Reveal cyber version of the character"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_42%,rgba(103,69,190,0.10),transparent_58%)]" />
@@ -126,20 +213,17 @@ export default function Hero({ site }) {
               src="/img/Normal.png"
               alt="Normal version of the portfolio character"
               draggable="false"
-              className="h-full w-full select-none object-contain object-top transition-transform duration-[1600ms] ease-out group-hover:scale-[1.008]"
-              style={{ transformOrigin: '50% 28%' }}
+              className="h-full w-full select-none object-contain object-top transition-transform duration-[1800ms] ease-out group-hover:scale-[1.006]"
+              style={{ transformOrigin: '50% 26%' }}
             />
           </div>
 
           <div
-            className="pointer-events-none absolute inset-0 flex items-start justify-center overflow-hidden transition-opacity duration-300"
+            ref={overlayRef}
+            className="pointer-events-none absolute inset-0 flex items-start justify-center overflow-hidden opacity-0 will-change-[mask-image,opacity]"
             style={{
-              clipPath: `circle(${radius}% at ${reveal.x}% ${reveal.y}%)`,
-              WebkitClipPath: `circle(${radius}% at ${reveal.x}% ${reveal.y}%)`,
-              opacity: cyberOpacity,
-              transition: reveal.phase === 'close'
-                ? 'clip-path 900ms cubic-bezier(.76,0,.24,1), -webkit-clip-path 900ms cubic-bezier(.76,0,.24,1), opacity 500ms ease 450ms'
-                : 'clip-path 950ms cubic-bezier(.16,1,.3,1), -webkit-clip-path 950ms cubic-bezier(.16,1,.3,1), opacity 180ms ease',
+              WebkitMaskImage: 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)',
+              maskImage: 'radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)',
             }}
           >
             <img
@@ -151,10 +235,10 @@ export default function Hero({ site }) {
           </div>
 
           <div
-            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500"
+            className="pointer-events-none absolute inset-0 transition-opacity duration-700"
             style={{
-              opacity: reveal.phase === 'open' || reveal.phase === 'hold' ? 1 : 0,
-              background: 'radial-gradient(circle at 55% 40%, rgba(126,82,255,.10), transparent 48%)',
+              opacity: cyberActive ? 1 : 0,
+              background: 'radial-gradient(circle at 55% 40%, rgba(126,82,255,.09), transparent 52%)',
               mixBlendMode: 'screen',
             }}
           />
@@ -167,9 +251,23 @@ export default function Hero({ site }) {
           </div>
 
           <div className="pointer-events-none absolute bottom-6 left-6 z-30 flex gap-4 font-mono text-[9px] tracking-[0.2em]">
-            <span className={reveal.phase === 'open' || reveal.phase === 'hold' ? 'text-bone/30' : 'text-bone/65'}>NORMAL</span>
+            <span className={cyberActive ? 'text-bone/30' : 'text-bone/65'}>NORMAL</span>
             <span className="text-bone/20">/</span>
-            <span className={reveal.phase === 'open' || reveal.phase === 'hold' ? 'text-orchid' : 'text-orchid/45'}>CYBER</span>
+            <span className={cyberActive ? 'text-orchid' : 'text-orchid/45'}>CYBER</span>
+          </div>
+
+          <div
+            ref={cursorRef}
+            className="pointer-events-none absolute left-0 top-0 z-40 flex items-center gap-2 opacity-0 transition-opacity duration-150"
+            aria-hidden="true"
+          >
+            <span className="relative block h-4 w-4">
+              <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-bone/75" />
+              <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-bone/75" />
+            </span>
+            <span className="rounded-full border border-bone/15 bg-ink/70 px-2.5 py-1.5 font-mono text-[8px] tracking-[0.18em] text-bone/75 backdrop-blur-md">
+              {phase === 'idle' ? 'SHIFT' : phase === 'closing' ? 'RESETTING' : 'SHIFTING'}
+            </span>
           </div>
         </button>
       </div>
