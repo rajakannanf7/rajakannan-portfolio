@@ -13,6 +13,27 @@ function clamp(value, min, max) {
 export default function Hero({ site }) {
   const heroRef = useRef(null);
   const [gaze, setGaze] = useState({ x: 0, y: 0 });
+  const [characterSrc, setCharacterSrc] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    fetch('/img/hero-character-site.webp.b64.txt')
+      .then((response) => {
+        if (!response.ok) throw new Error('Character asset unavailable');
+        return response.text();
+      })
+      .then((payload) => {
+        if (active && payload.trim()) {
+          setCharacterSrc(`data:image/webp;base64,${payload.trim()}`);
+        }
+      })
+      .catch(() => {
+        if (active) setCharacterSrc('');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -121,24 +142,28 @@ export default function Hero({ site }) {
         </div>
 
         <div className="relative z-10 min-h-[650px] overflow-hidden rounded-[24px] bg-[#090810] xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none">
-          <img src="/img/hero-character.webp" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[45%_30%] opacity-35 blur-[22px] saturate-[1.1]" />
+          {characterSrc && (
+            <img src={characterSrc} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[45%_30%] opacity-35 blur-[22px] saturate-[1.1]" />
+          )}
           <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-ink via-ink/18 to-transparent xl:from-ink/90 xl:via-ink/5" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-36 bg-gradient-to-t from-ink via-ink/35 to-transparent" />
 
-          <div
-            className="absolute bottom-0 right-[2%] z-20 h-[97%] aspect-[520/770] transition-transform duration-300 ease-out will-change-transform md:right-[8%] xl:right-[5%] 2xl:right-[7%]"
-            style={{ transform: `translate3d(${headX}px, ${headY}px, 0) scale(1.01)` }}
-          >
-            <img src="/img/hero-character.webp" alt="Futuristic digital character" className="h-full w-full object-cover" />
-            <span
-              className="pointer-events-none absolute left-[18.5%] top-[25.7%] h-[7px] w-[7px] rounded-full bg-orchid/90 shadow-[0_0_16px_rgba(164,107,240,0.95)] mix-blend-screen"
-              style={{ transform: `translate3d(${eyeX}px, ${eyeY}px, 0)` }}
-            />
-            <span
-              className="pointer-events-none absolute left-[38.7%] top-[25.2%] h-[7px] w-[7px] rounded-full bg-orchid/90 shadow-[0_0_16px_rgba(164,107,240,0.95)] mix-blend-screen"
-              style={{ transform: `translate3d(${eyeX}px, ${eyeY}px, 0)` }}
-            />
-          </div>
+          {characterSrc && (
+            <div
+              className="absolute bottom-0 right-[2%] z-20 h-[97%] aspect-[486/720] transition-transform duration-300 ease-out will-change-transform md:right-[8%] xl:right-[5%] 2xl:right-[7%]"
+              style={{ transform: `translate3d(${headX}px, ${headY}px, 0) scale(1.01)` }}
+            >
+              <img src={characterSrc} alt="Futuristic digital character" className="h-full w-full object-cover" />
+              <span
+                className="pointer-events-none absolute left-[18.5%] top-[25.7%] h-[7px] w-[7px] rounded-full bg-orchid/90 shadow-[0_0_16px_rgba(164,107,240,0.95)] mix-blend-screen"
+                style={{ transform: `translate3d(${eyeX}px, ${eyeY}px, 0)` }}
+              />
+              <span
+                className="pointer-events-none absolute left-[38.7%] top-[25.2%] h-[7px] w-[7px] rounded-full bg-orchid/90 shadow-[0_0_16px_rgba(164,107,240,0.95)] mix-blend-screen"
+                style={{ transform: `translate3d(${eyeX}px, ${eyeY}px, 0)` }}
+              />
+            </div>
+          )}
 
           <div className="pointer-events-none absolute left-[7%] top-[34%] z-30 hidden xl:block">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-bone/10 bg-bone/[0.015] backdrop-blur-sm">
