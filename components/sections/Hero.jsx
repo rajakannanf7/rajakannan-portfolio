@@ -1,393 +1,358 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { VioletButton, GhostButton } from '../ui/bits';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Stars } from '@react-three/drei';
+import * as THREE from 'three';
 
-const ROLES = ['MOTION DESIGNER', '3D ARTIST', 'AI VISUAL CREATOR', 'PHOTOGRAPHER'];
-const SIGNALS = ['MOTION', '3D', 'AI', 'PHOTO', 'REALTIME', 'DESIGN', 'TECH'];
+const GATE_LABELS = ['MOTION', '3D / CGI', 'AI', 'PHOTO', 'REALTIME', 'LAB'];
 
-function HeroGame() {
-  const canvasRef = useRef(null);
-  const wrapRef = useRef(null);
-  const frameRef = useRef(null);
-  const stateRef = useRef(null);
-  const [score, setScore] = useState(0);
-  const [won, setWon] = useState(false);
-  const [started, setStarted] = useState(false);
+function HoverCar({ carRef, boost }) {
+  const thrusterRef = useRef(null);
+  const glowRef = useRef(null);
 
-  const resetGame = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const w = Math.max(1, rect.width);
-    const h = Math.max(1, rect.height);
-    const pad = Math.min(90, w * 0.12);
-    const nodes = SIGNALS.map((label, i) => {
-      const angle = (Math.PI * 2 * i) / SIGNALS.length + 0.35;
-      const rx = w * (0.26 + (i % 3) * 0.035);
-      const ry = h * (0.25 + ((i + 1) % 3) * 0.035);
-      return {
-        label,
-        x: w / 2 + Math.cos(angle) * rx,
-        y: h / 2 + Math.sin(angle) * ry,
-        baseX: w / 2 + Math.cos(angle) * rx,
-        baseY: h / 2 + Math.sin(angle) * ry,
-        phase: i * 0.9,
-        collected: false,
-      };
-    });
-    stateRef.current = {
-      w,
-      h,
-      time: 0,
-      pointer: { x: w * 0.5, y: h * 0.54 },
-      player: { x: w * 0.5, y: h * 0.54, vx: 0, vy: 0 },
-      nodes,
-      bursts: [],
-      trail: [],
-      stars: Array.from({ length: 88 }, (_, i) => ({
-        x: (i * 97.13) % w,
-        y: (i * 53.71) % h,
-        r: 0.45 + ((i * 11) % 17) / 17,
-        a: 0.12 + ((i * 7) % 19) / 40,
-      })),
-    };
-    setScore(0);
-    setWon(false);
-    setStarted(false);
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!canvas || !wrap) return undefined;
-
-    const resize = () => {
-      const rect = wrap.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      resetGame();
-    };
-
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(wrap);
-
-    const draw = () => {
-      const s = stateRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!s || !ctx) {
-        frameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
-      s.time += 0.016;
-      const { w, h } = s;
-      ctx.clearRect(0, 0, w, h);
-
-      const bg = ctx.createRadialGradient(w * 0.52, h * 0.46, 20, w * 0.52, h * 0.46, Math.max(w, h) * 0.72);
-      bg.addColorStop(0, 'rgba(91,61,170,0.16)');
-      bg.addColorStop(0.42, 'rgba(25,19,52,0.13)');
-      bg.addColorStop(1, 'rgba(3,4,8,0)');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, w, h);
-
-      for (const star of s.stars) {
-        const twinkle = 0.55 + Math.sin(s.time * 1.7 + star.x * 0.01) * 0.25;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,194,255,${star.a * twinkle})`;
-        ctx.fill();
-      }
-
-      const p = s.player;
-      const ease = 0.075;
-      p.vx = (s.pointer.x - p.x) * ease;
-      p.vy = (s.pointer.y - p.y) * ease;
-      p.x += p.vx;
-      p.y += p.vy;
-
-      s.trail.push({ x: p.x, y: p.y, life: 1 });
-      if (s.trail.length > 32) s.trail.shift();
-      for (const t of s.trail) t.life *= 0.92;
-      if (s.trail.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(s.trail[0].x, s.trail[0].y);
-        for (let i = 1; i < s.trail.length; i += 1) ctx.lineTo(s.trail[i].x, s.trail[i].y);
-        const trailGradient = ctx.createLinearGradient(s.trail[0].x, s.trail[0].y, p.x, p.y);
-        trailGradient.addColorStop(0, 'rgba(90,76,255,0)');
-        trailGradient.addColorStop(0.55, 'rgba(103,122,255,0.18)');
-        trailGradient.addColorStop(1, 'rgba(188,94,255,0.62)');
-        ctx.strokeStyle = trailGradient;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      let liveCount = 0;
-      s.nodes.forEach((node, i) => {
-        if (node.collected) return;
-        liveCount += 1;
-        node.x = node.baseX + Math.sin(s.time * 0.72 + node.phase) * 18;
-        node.y = node.baseY + Math.cos(s.time * 0.58 + node.phase * 1.3) * 15;
-
-        const dx = p.x - node.x;
-        const dy = p.y - node.y;
-        const dist = Math.hypot(dx, dy);
-        if (!won && dist < 31) {
-          node.collected = true;
-          const nextScore = SIGNALS.length - (liveCount - 1);
-          setScore(nextScore);
-          for (let b = 0; b < 18; b += 1) {
-            const a = (Math.PI * 2 * b) / 18;
-            const speed = 1.4 + (b % 5) * 0.42;
-            s.bursts.push({ x: node.x, y: node.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 1 });
-          }
-          if (nextScore >= SIGNALS.length) setWon(true);
-          return;
-        }
-
-        const pulse = 1 + Math.sin(s.time * 2.2 + i) * 0.09;
-        ctx.save();
-        ctx.translate(node.x, node.y);
-        ctx.scale(pulse, pulse);
-        ctx.beginPath();
-        ctx.arc(0, 0, 19, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(161,113,255,0.18)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(175,112,255,0.92)';
-        ctx.shadowColor = 'rgba(150,92,255,0.9)';
-        ctx.shadowBlur = 18;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.letterSpacing = '1px';
-        ctx.fillStyle = 'rgba(226,220,255,0.62)';
-        ctx.textAlign = 'center';
-        ctx.fillText(node.label, 0, 36);
-        ctx.restore();
-      });
-
-      s.bursts = s.bursts.filter((b) => b.life > 0.03);
-      s.bursts.forEach((b) => {
-        b.x += b.vx;
-        b.y += b.vy;
-        b.life *= 0.955;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, 1.3, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(180,120,255,${b.life})`;
-        ctx.fill();
-      });
-
-      if (won) {
-        const pulse = 0.5 + 0.5 * Math.sin(s.time * 2.4);
-        const cx = w * 0.5;
-        const cy = h * 0.5;
-        for (let r = 0; r < 3; r += 1) {
-          ctx.beginPath();
-          ctx.arc(cx, cy, 54 + r * 21 + pulse * 7, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(${r === 1 ? '112,205,255' : '176,104,255'},${0.28 - r * 0.055})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
-        const portal = ctx.createRadialGradient(cx, cy, 0, cx, cy, 54);
-        portal.addColorStop(0, 'rgba(235,222,255,0.95)');
-        portal.addColorStop(0.16, 'rgba(178,111,255,0.72)');
-        portal.addColorStop(0.55, 'rgba(89,71,235,0.24)');
-        portal.addColorStop(1, 'rgba(89,71,235,0)');
-        ctx.fillStyle = portal;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 58, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      const rot = Math.atan2(p.vy, p.vx || 0.001) + Math.PI / 2;
-      ctx.rotate(rot);
-      ctx.shadowColor = 'rgba(165,104,255,0.95)';
-      ctx.shadowBlur = 20;
-      ctx.beginPath();
-      ctx.moveTo(0, -13);
-      ctx.lineTo(9, 10);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(-9, 10);
-      ctx.closePath();
-      const ship = ctx.createLinearGradient(-9, -10, 9, 10);
-      ship.addColorStop(0, '#d9c7ff');
-      ship.addColorStop(0.55, '#9d68ff');
-      ship.addColorStop(1, '#65d7ff');
-      ctx.fillStyle = ship;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-
-      frameRef.current = requestAnimationFrame(draw);
-    };
-
-    frameRef.current = requestAnimationFrame(draw);
-    return () => {
-      observer.disconnect();
-      cancelAnimationFrame(frameRef.current);
-    };
-  }, [won]);
-
-  const updatePointer = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (!stateRef.current) return;
-    stateRef.current.pointer.x = Math.max(18, Math.min(rect.width - 18, event.clientX - rect.left));
-    stateRef.current.pointer.y = Math.max(18, Math.min(rect.height - 18, event.clientY - rect.top));
-    if (!started) setStarted(true);
-  };
-
-  const clickGame = (event) => {
-    if (!won) {
-      updatePointer(event);
-      return;
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (thrusterRef.current) {
+      const pulse = 1 + Math.sin(t * 18) * 0.08;
+      thrusterRef.current.scale.set(1, 1, pulse * (boost ? 1.8 : 1));
     }
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const cx = rect.width * 0.5;
-    const cy = rect.height * 0.5;
-    if (Math.hypot(x - cx, y - cy) < 105) window.location.href = '/work';
-  };
+    if (glowRef.current) {
+      glowRef.current.material.opacity = 0.36 + Math.sin(t * 7) * 0.06 + (boost ? 0.18 : 0);
+    }
+  });
 
   return (
-    <div
-      ref={wrapRef}
-      className="group relative z-10 min-h-[650px] overflow-hidden rounded-[24px] border border-bone/[0.07] bg-[#05060a] xl:-mr-[4.2vw] xl:min-h-[calc(100svh-120px)] xl:max-h-[930px] xl:rounded-none"
-      onPointerMove={updatePointer}
-      onPointerDown={clickGame}
-      style={{ touchAction: 'none', cursor: won ? 'pointer' : 'crosshair' }}
-      role="application"
-      aria-label="Signal Runner mini game. Move the cursor to collect seven creative signals."
+    <group ref={carRef} position={[0, 0.52, 3.15]}>
+      <mesh castShadow position={[0, 0.06, 0]} scale={[1.22, 0.34, 2.25]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#11131b" metalness={0.95} roughness={0.16} />
+      </mesh>
+
+      <mesh position={[0, 0.34, -0.12]} scale={[0.68, 0.32, 1.18]}>
+        <sphereGeometry args={[1, 32, 20]} />
+        <meshStandardMaterial color="#141220" metalness={0.9} roughness={0.08} emissive="#24134a" emissiveIntensity={0.48} />
+      </mesh>
+
+      <mesh position={[-1.04, 0.02, 0.18]} rotation={[0, -0.08, 0.05]} scale={[0.9, 0.08, 1.48]}>
+        <boxGeometry />
+        <meshStandardMaterial color="#090b12" metalness={0.92} roughness={0.22} />
+      </mesh>
+      <mesh position={[1.04, 0.02, 0.18]} rotation={[0, 0.08, -0.05]} scale={[0.9, 0.08, 1.48]}>
+        <boxGeometry />
+        <meshStandardMaterial color="#090b12" metalness={0.92} roughness={0.22} />
+      </mesh>
+
+      <mesh position={[-0.76, 0.22, -0.2]} scale={[0.08, 0.06, 1.48]}>
+        <boxGeometry />
+        <meshBasicMaterial color="#9d65ff" toneMapped={false} />
+      </mesh>
+      <mesh position={[0.76, 0.22, -0.2]} scale={[0.08, 0.06, 1.48]}>
+        <boxGeometry />
+        <meshBasicMaterial color="#63d8ff" toneMapped={false} />
+      </mesh>
+
+      <group ref={thrusterRef} position={[0, 0.06, 1.2]}>
+        <mesh position={[-0.48, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.13, 0.85, 16]} />
+          <meshBasicMaterial color="#a96fff" transparent opacity={0.82} toneMapped={false} />
+        </mesh>
+        <mesh position={[0.48, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.13, 0.85, 16]} />
+          <meshBasicMaterial color="#62dcff" transparent opacity={0.82} toneMapped={false} />
+        </mesh>
+      </group>
+
+      <mesh ref={glowRef} position={[0, -0.27, 0.18]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.5, 40]} />
+        <meshBasicMaterial color="#7240df" transparent opacity={0.38} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function MovingTrack({ speed }) {
+  const segmentRefs = useRef([]);
+  const postRefs = useRef([]);
+  const count = 30;
+  const spacing = 6.2;
+
+  useFrame((_, delta) => {
+    const dz = speed * delta;
+    segmentRefs.current.forEach((group) => {
+      if (!group) return;
+      group.position.z += dz;
+      if (group.position.z > 11) group.position.z -= count * spacing;
+    });
+    postRefs.current.forEach((group) => {
+      if (!group) return;
+      group.position.z += dz;
+      if (group.position.z > 10) group.position.z -= 18 * 11;
+    });
+  });
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <group key={i} ref={(el) => { segmentRefs.current[i] = el; }} position={[0, 0, -i * spacing + 6]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]} receiveShadow>
+            <planeGeometry args={[10, spacing + 0.04]} />
+            <meshStandardMaterial color={i % 2 ? '#090a10' : '#0b0c13'} metalness={0.38} roughness={0.7} />
+          </mesh>
+
+          <mesh position={[0, 0.015, 0]} scale={[0.055, 0.025, 1.15]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#7c65ff" transparent opacity={0.56} toneMapped={false} />
+          </mesh>
+          <mesh position={[-2.15, 0.012, 0]} scale={[0.035, 0.02, 0.82]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#6b80ff" transparent opacity={0.32} toneMapped={false} />
+          </mesh>
+          <mesh position={[2.15, 0.012, 0]} scale={[0.035, 0.02, 0.82]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#a55fff" transparent opacity={0.32} toneMapped={false} />
+          </mesh>
+
+          <mesh position={[-5.05, 0.12, 0]} scale={[0.055, 0.12, spacing * 0.5]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#8b52ff" transparent opacity={0.72} toneMapped={false} />
+          </mesh>
+          <mesh position={[5.05, 0.12, 0]} scale={[0.055, 0.12, spacing * 0.5]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#50d9ff" transparent opacity={0.72} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+
+      {Array.from({ length: 18 }, (_, i) => (
+        <group key={`post-${i}`} ref={(el) => { postRefs.current[i] = el; }} position={[0, 0, -i * 11] }>
+          <mesh position={[-6.2, 1.65, 0]} scale={[0.055, 1.65, 0.055]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#6f46d8" toneMapped={false} />
+          </mesh>
+          <mesh position={[6.2, 1.65, 0]} scale={[0.055, 1.65, 0.055]}>
+            <boxGeometry />
+            <meshBasicMaterial color="#3daed1" toneMapped={false} />
+          </mesh>
+          <mesh position={[-6.2, 3.3, 0]}>
+            <sphereGeometry args={[0.12, 12, 8]} />
+            <meshBasicMaterial color="#ad7aff" toneMapped={false} />
+          </mesh>
+          <mesh position={[6.2, 3.3, 0]}>
+            <sphereGeometry args={[0.12, 12, 8]} />
+            <meshBasicMaterial color="#68ddff" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
+function Gates({ speed, carXRef, onPass }) {
+  const refs = useRef([]);
+  const data = useMemo(() => [
+    { x: -2.15, z: -26, label: GATE_LABELS[0] },
+    { x: 1.85, z: -56, label: GATE_LABELS[1] },
+    { x: -0.7, z: -86, label: GATE_LABELS[2] },
+    { x: 2.2, z: -116, label: GATE_LABELS[3] },
+    { x: -1.8, z: -146, label: GATE_LABELS[4] },
+    { x: 0.85, z: -176, label: GATE_LABELS[5] },
+  ], []);
+
+  useFrame((_, delta) => {
+    refs.current.forEach((group, i) => {
+      if (!group) return;
+      group.position.z += speed * delta;
+
+      if (!group.userData.checked && group.position.z > 2.2) {
+        group.userData.checked = true;
+        if (Math.abs(carXRef.current - group.position.x) < 1.45) onPass(data[i].label);
+      }
+
+      if (group.position.z > 11) {
+        group.position.z -= 180;
+        group.userData.checked = false;
+      }
+    });
+  });
+
+  return data.map((gate, i) => (
+    <group
+      key={gate.label}
+      ref={(el) => {
+        refs.current[i] = el;
+        if (el) el.userData.checked = false;
+      }}
+      position={[gate.x, 1.3, gate.z]}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,10,.48),transparent_23%,transparent_80%,rgba(5,6,10,.22))]" />
+      <mesh rotation={[0, 0, 0]}>
+        <torusGeometry args={[1.48, 0.055, 12, 64]} />
+        <meshBasicMaterial color={i % 2 ? '#5ed9ff' : '#a565ff'} transparent opacity={0.92} toneMapped={false} />
+      </mesh>
+      <mesh scale={[1.18, 1.18, 1]}>
+        <torusGeometry args={[1.48, 0.018, 8, 64]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.22} toneMapped={false} />
+      </mesh>
+      <pointLight color={i % 2 ? '#5ed9ff' : '#a565ff'} intensity={5} distance={8} decay={2} />
+      <mesh position={[-1.48, -1.22, 0]} scale={[0.08, 1.2, 0.08]}>
+        <boxGeometry />
+        <meshBasicMaterial color="#7653ff" toneMapped={false} />
+      </mesh>
+      <mesh position={[1.48, -1.22, 0]} scale={[0.08, 1.2, 0.08]}>
+        <boxGeometry />
+        <meshBasicMaterial color="#57d5ff" toneMapped={false} />
+      </mesh>
+    </group>
+  ));
+}
 
-      <div className="pointer-events-none absolute left-6 top-6 z-20">
-        <div className="font-mono text-[9px] tracking-[0.24em] text-bone/42">INTERACTIVE // 01</div>
-        <div className="mt-2 text-[clamp(1.1rem,1.4vw,1.65rem)] font-light tracking-[-0.02em] text-bone">SIGNAL RUNNER</div>
-        <p className="mt-2 max-w-[250px] font-mono text-[9px] leading-[1.8] tracking-[0.14em] text-bone/42">
-          {won ? 'PORTAL OPEN — ENTER THE WORK' : started ? 'COLLECT ALL CREATIVE SIGNALS' : 'MOVE TO PILOT · COLLECT 07 SIGNALS'}
-        </p>
-      </div>
+function RaceRig({ boost, onPass }) {
+  const carRef = useRef(null);
+  const carXRef = useRef(0);
+  const lookTarget = useMemo(() => new THREE.Vector3(0, 0.65, -22), []);
+  const speed = boost ? 34 : 21;
 
-      <div className="pointer-events-none absolute right-6 top-6 z-20 text-right font-mono">
-        <div className="text-[9px] tracking-[0.2em] text-bone/34">SIGNALS</div>
-        <div className="mt-1 text-3xl font-light text-bone">{String(score).padStart(2, '0')}<span className="text-bone/20"> / 07</span></div>
-      </div>
+  useFrame((state, delta) => {
+    const targetX = THREE.MathUtils.clamp(state.pointer.x * 4.45, -4.15, 4.15);
+    carXRef.current = THREE.MathUtils.damp(carXRef.current, targetX, boost ? 7.5 : 5.2, delta);
 
-      <div className={`pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 translate-y-[88px] text-center transition-all duration-500 ${won ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="font-mono text-[10px] tracking-[0.28em] text-orchid">PORTAL OPEN</div>
-        <div className="mt-2 font-mono text-[9px] tracking-[0.18em] text-bone/50">CLICK THE CORE → WORK</div>
-      </div>
+    if (carRef.current) {
+      carRef.current.position.x = carXRef.current;
+      const steer = THREE.MathUtils.clamp(targetX - carXRef.current, -1, 1);
+      carRef.current.rotation.z = THREE.MathUtils.damp(carRef.current.rotation.z, -steer * 0.18, 5, delta);
+      carRef.current.rotation.y = THREE.MathUtils.damp(carRef.current.rotation.y, -steer * 0.08, 5, delta);
+      carRef.current.position.y = 0.52 + Math.sin(state.clock.elapsedTime * 5.4) * 0.018;
+    }
 
-      <button
-        type="button"
-        onClick={(event) => { event.stopPropagation(); resetGame(); }}
-        className="absolute bottom-6 right-6 z-30 rounded-full border border-bone/10 bg-ink/50 px-4 py-2.5 font-mono text-[9px] tracking-[0.18em] text-bone/48 backdrop-blur-md transition-colors hover:border-orchid/35 hover:text-bone"
-      >
-        RESET
-      </button>
+    state.camera.position.x = THREE.MathUtils.damp(state.camera.position.x, carXRef.current * 0.12, 3.5, delta);
+    state.camera.position.y = THREE.MathUtils.damp(state.camera.position.y, boost ? 3.1 : 3.25, 3, delta);
+    state.camera.position.z = THREE.MathUtils.damp(state.camera.position.z, boost ? 8.2 : 8.6, 3, delta);
+    lookTarget.x = carXRef.current * 0.045;
+    state.camera.lookAt(lookTarget);
+  });
 
-      <div className="pointer-events-none absolute bottom-6 left-6 z-20 flex items-center gap-3 font-mono text-[8px] tracking-[0.18em] text-bone/32">
-        <span className="h-1.5 w-1.5 rounded-full bg-orchid shadow-[0_0_12px_rgba(164,107,240,.75)]" />
-        MOUSE / TOUCH CONTROL
-      </div>
-    </div>
+  return (
+    <>
+      <MovingTrack speed={speed} />
+      <Gates speed={speed} carXRef={carXRef} onPass={onPass} />
+      <HoverCar carRef={carRef} boost={boost} />
+    </>
+  );
+}
+
+function RacingScene({ boost, onPass }) {
+  return (
+    <>
+      <color attach="background" args={['#04050a']} />
+      <fog attach="fog" args={['#06050d', 20, 88]} />
+      <ambientLight intensity={0.48} />
+      <directionalLight position={[0, 8, 6]} intensity={1.25} color="#cfc6ff" />
+      <pointLight position={[-5, 2.2, 2]} intensity={7} distance={18} color="#8d57ff" />
+      <pointLight position={[5, 2.2, 2]} intensity={6} distance={18} color="#50d8ff" />
+      <Stars radius={80} depth={48} count={900} factor={2.1} saturation={0.15} fade speed={0.8} />
+      <RaceRig boost={boost} onPass={onPass} />
+    </>
   );
 }
 
 export default function Hero({ site }) {
+  const [boost, setBoost] = useState(false);
+  const [checkpoints, setCheckpoints] = useState(0);
+  const [lastGate, setLastGate] = useState('START');
+
+  const onPass = useCallback((label) => {
+    setCheckpoints((value) => value + 1);
+    setLastGate(label);
+  }, []);
+
   return (
-    <section className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink px-6 pb-4 pt-24 md:px-[clamp(36px,4vw,80px)] md:pt-28 xl:min-h-[calc(100svh-48px)] xl:px-[clamp(48px,4.2vw,96px)] xl:pt-24">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(62%_90%_at_76%_38%,rgba(112,82,255,0.13),transparent_58%),radial-gradient(40%_70%_at_47%_46%,rgba(84,55,180,0.06),transparent_66%)]" />
+    <section className="relative min-h-[820px] overflow-hidden border-b border-bone/[0.08] bg-ink pt-20 md:pt-24">
+      <div
+        className="relative h-[calc(100svh-80px)] min-h-[740px] w-full overflow-hidden bg-[#04050a]"
+        onPointerDown={() => setBoost(true)}
+        onPointerUp={() => setBoost(false)}
+        onPointerCancel={() => setBoost(false)}
+        onPointerLeave={() => setBoost(false)}
+        style={{ touchAction: 'pan-y' }}
+      >
+        <Canvas
+          dpr={[1, 1.6]}
+          camera={{ position: [0, 3.25, 8.6], fov: 55, near: 0.1, far: 220 }}
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
+        >
+          <Suspense fallback={null}>
+            <RacingScene boost={boost} onPass={onPass} />
+          </Suspense>
+        </Canvas>
 
-      <div className="relative mx-auto grid w-full max-w-[2200px] grid-cols-1 items-stretch gap-8 xl:grid-cols-[0.86fr_1.14fr] xl:gap-0 2xl:grid-cols-[0.82fr_1.18fr]">
-        <div className="relative z-20 flex min-h-[700px] flex-col justify-start pb-8 pt-8 xl:min-h-[calc(100svh-155px)] xl:max-h-[900px] xl:pr-[clamp(28px,3vw,64px)] xl:pt-[clamp(42px,6vh,72px)]">
-          <div className="mb-7 flex items-center gap-5 font-mono text-[10px] tracking-[0.28em] text-dim">
-            <span className="h-2 w-2 rounded-full bg-orchid shadow-[0_0_18px_rgba(164,107,240,0.8)]" />
-            <span>CREATIVE TECHNOLOGIST</span>
-            <span className="ml-auto hidden xl:inline">{site.city.toUpperCase()}</span>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(4,5,10,.32),transparent_20%,transparent_68%,rgba(4,5,10,.72)),radial-gradient(circle_at_50%_42%,transparent_0%,rgba(4,5,10,.08)_56%,rgba(4,5,10,.56)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-ink/75 to-transparent" />
+
+        <div className="pointer-events-none absolute left-[clamp(24px,4vw,78px)] top-[clamp(26px,4.5vw,68px)] z-20 max-w-[980px]">
+          <div className="flex items-center gap-3 font-mono text-[9px] tracking-[0.28em] text-bone/42 md:text-[10px]">
+            <span className="h-1.5 w-1.5 rounded-full bg-orchid shadow-[0_0_14px_rgba(164,107,240,.8)]" />
+            RK // NIGHT RUN 2026
           </div>
-
-          <div className="max-w-[940px]">
-            <h1 className="text-[clamp(4.9rem,8vw,10.4rem)] font-bold leading-[0.8] tracking-[-0.055em] text-bone">RAJA</h1>
-            <h1 className="mt-1 text-[clamp(4.25rem,7.2vw,9.2rem)] font-extralight leading-[0.84] tracking-[-0.045em] text-bone/[0.58]">KANNAN</h1>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-            {ROLES.map((role, i) => (
-              <span key={role} className="flex items-center gap-4">
-                {i > 0 && <span className="text-bone/20">·</span>}
-                <span className="font-mono text-[10px] tracking-[0.15em] text-bone/70 md:text-[11px]">{role}</span>
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-7 h-px w-12 bg-gradient-to-r from-orchid to-halo" />
-
-          <p className="mt-5 max-w-[760px] text-[clamp(2rem,2.25vw,3.25rem)] font-light leading-[1.02] tracking-[-0.025em] text-bone">I shoot it — then make it unreal.</p>
-          <p className="mt-3 max-w-[700px] text-[15px] font-light leading-relaxed text-bone/58 md:text-base xl:text-[17px]">
-            {site.blurb || 'Blending real and virtual to create striking visual experiences for brands, artists and ideas that push boundaries.'}
-          </p>
-
-          <div className="mt-7 flex flex-wrap gap-3">
-            <VioletButton href="/work">SELECTED WORK</VioletButton>
-            <GhostButton href="/about">ABOUT ME</GhostButton>
-          </div>
-
-          <div className="mt-auto flex max-w-[830px] flex-col gap-5 border-t border-bone/[0.08] pt-6 sm:flex-row sm:items-end">
-            <Link
-              href={site.showreelUrl || '/work'}
-              target={site.showreelUrl ? '_blank' : undefined}
-              data-cursor="play"
-              className="group relative h-[132px] w-full overflow-hidden rounded-[18px] border border-bone/10 bg-bone/[0.02] sm:w-[300px] xl:h-[145px] xl:w-[330px]"
-            >
-              <img src="/img/showreel-thumb.jpg" alt="Showreel preview" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-swift group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-r from-ink/80 via-ink/35 to-transparent" />
-              <span className="absolute left-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-bone/65 bg-ink/20 backdrop-blur-sm">
-                <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[9px] border-y-transparent border-l-bone" />
-              </span>
-              <span className="absolute bottom-5 left-5 font-mono text-[10px] tracking-[0.16em] text-bone/70">SHOWREEL 2026</span>
-            </Link>
-
-            <div className="grid flex-1 grid-cols-3 gap-5 pb-1 sm:pl-3">
-              {[
-                ['7+', 'YEARS EXPERIENCE'],
-                ['50+', 'PROJECTS WORLDWIDE'],
-                ['∞', 'STORIES TO CREATE'],
-              ].map(([value, label]) => (
-                <div key={label}>
-                  <div className="text-3xl font-light text-bone xl:text-[2.35rem]">{value}</div>
-                  <div className="mt-2 max-w-[100px] font-mono text-[9px] leading-relaxed tracking-[0.18em] text-dim">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-center gap-3 font-mono text-[9px] tracking-[0.2em] text-dim">
-            <span>{site.city.toUpperCase()}</span>
-            <span className="h-px w-8 bg-bone/20" />
-            <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-orchid" />
-              AVAILABLE — {site.availability?.split('—')[0]?.trim().toUpperCase() || 'Q4 2026'}
-            </span>
+          <h1 className="mt-4 text-[clamp(4.2rem,9.7vw,11.5rem)] font-semibold leading-[0.76] tracking-[-0.07em] text-bone/95 mix-blend-screen">
+            RAJA KANNAN
+          </h1>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[9px] tracking-[0.16em] text-bone/46 md:text-[10px]">
+            <span>MOTION DESIGN</span>
+            <span>3D / CGI</span>
+            <span>AI VISUALS</span>
+            <span>PHOTOGRAPHY</span>
+            <span>CREATIVE TECH</span>
           </div>
         </div>
 
-        <HeroGame />
+        <div className="pointer-events-none absolute right-[clamp(20px,3vw,56px)] top-[clamp(26px,4vw,60px)] z-20 text-right font-mono">
+          <div className="text-[8px] tracking-[0.24em] text-bone/34">CHECKPOINTS</div>
+          <div className="mt-1 text-[clamp(1.8rem,2.4vw,3rem)] font-light tracking-[-0.04em] text-bone">
+            {String(checkpoints).padStart(2, '0')}
+          </div>
+          <div className="mt-4 text-[8px] tracking-[0.24em] text-bone/34">SPEED</div>
+          <div className={`mt-1 text-sm tracking-[0.16em] ${boost ? 'text-cyan-300' : 'text-orchid'}`}>
+            {boost ? 'BOOST 340' : 'CRUISE 210'}
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute left-1/2 top-[43%] z-10 -translate-x-1/2 text-center">
+          <div className="font-mono text-[8px] tracking-[0.34em] text-bone/28">SECTOR</div>
+          <div key={lastGate} className="mt-2 text-[clamp(1.1rem,1.8vw,2rem)] font-light tracking-[0.08em] text-bone/52 animate-pulse">
+            {lastGate}
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col gap-5 px-[clamp(22px,4vw,76px)] pb-[clamp(24px,3vw,46px)] md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/work"
+              className="rounded-full border border-orchid/45 bg-orchid/14 px-6 py-3.5 font-mono text-[10px] tracking-[0.16em] text-bone backdrop-blur-md transition-all hover:border-orchid/80 hover:bg-orchid/24"
+            >
+              ENTER THE WORK →
+            </Link>
+            <Link
+              href="/about"
+              className="rounded-full border border-bone/12 bg-ink/28 px-6 py-3.5 font-mono text-[10px] tracking-[0.16em] text-bone/62 backdrop-blur-md transition-all hover:border-bone/30 hover:text-bone"
+            >
+              ABOUT
+            </Link>
+          </div>
+
+          <div className="flex flex-col items-start gap-2 md:items-end">
+            <div className="flex items-center gap-3 font-mono text-[9px] tracking-[0.18em] text-bone/38">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300/80" />
+              MOVE / TOUCH TO STEER
+            </div>
+            <div className="font-mono text-[8px] tracking-[0.18em] text-bone/26">HOLD TO BOOST · PASS THROUGH THE GATES</div>
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 z-10 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-bone/[0.03] to-transparent" />
       </div>
+
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orchid/30 to-transparent" />
     </section>
   );
 }
