@@ -101,3 +101,14 @@ export function ContactBlock({ site }) {
     </section>
   );
 }
+
+// Endless strip of phrases, alternating bold condensed and serif italic.
+export function Ticker({ items = [] }) {
+  if (!items.length) return null;
+  const run = items.map((t, i) => <span key={i} className={i % 2 ? 's' : 'b'}>{t}</span>);
+  return (
+    <div className="ticker" aria-label={items.join(', ')}>
+      <div className="tr" aria-hidden="true">{run}{run.map((r, i) => <span key={`d${i}`} className={r.props.className}>{r.props.children}</span>)}</div>
+    </div>
+  );
+}

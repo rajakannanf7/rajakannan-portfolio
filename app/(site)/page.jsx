@@ -4,7 +4,7 @@ import WorkReel from '../../components/site/WorkReel';
 import Process from '../../components/site/Process';
 import FilmStrip from '../../components/site/FilmStrip';
 import { LabGrid } from '../../components/site/Filters';
-import { Accent, ContactBlock, SplitHeading, Words } from '../../components/site/bits';
+import { Accent, ContactBlock, SplitHeading, Ticker, Words } from '../../components/site/bits';
 import { getFeaturedProjects, getLabs, getProjects, getShoots, getSite, getSkills } from '../../lib/content';
 import { paragraphs } from '../../lib/text';
 
@@ -106,9 +106,7 @@ export default async function Home() {
             <Link href="/about" className="link-arrow mono rv">Experience & story →</Link>
           </div>
         </div>
-        <div className="clients" aria-label="Clients and teams">
-          <div className="tr">{[...site.clients, ...site.clients].map((c, i) => <span key={i}>{c}</span>)}</div>
-        </div>
+        <Ticker items={site.marquee} />
       </section>
 
       <ContactBlock site={site} />

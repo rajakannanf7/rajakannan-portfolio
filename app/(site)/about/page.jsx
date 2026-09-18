@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Accent, ContactBlock, PageHead } from '../../../components/site/bits';
+import { Accent, ContactBlock, PageHead, Ticker } from '../../../components/site/bits';
 import { getProjects, getShoots, getSite, getSkills } from '../../../lib/content';
 import { paragraphs } from '../../../lib/text';
 
@@ -39,9 +39,7 @@ export default async function AboutPage() {
             <ul className="chips">{skills.map((s) => <li key={s.slug}><Link href={`/skills/${s.slug}`}>{s.title} {s.sub}</Link></li>)}</ul>
           </div>
         </div>
-        <div className="clients" aria-label="Clients and teams">
-          <div className="tr">{[...site.clients, ...site.clients].map((c, i) => <span key={i}>{c}</span>)}</div>
-        </div>
+        <Ticker items={site.marquee} />
       </section>
       <ContactBlock site={site} />
     </>
