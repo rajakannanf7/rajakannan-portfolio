@@ -30,6 +30,7 @@ export default function Motion() {
         if (reduce) {
           gsap.set('.rv', { opacity: 1, y: 0 });
           document.querySelectorAll('.bts').forEach((el) => el.classList.add('in'));
+          document.querySelectorAll('[data-develop]').forEach((el) => el.style.setProperty('--dev', 50));
           return;
         }
         gsap.utils.toArray('.split').forEach((h) =>
@@ -41,6 +42,18 @@ export default function Motion() {
         gsap.utils.toArray('[data-words]').forEach((p) =>
           gsap.to(p.querySelectorAll('.w'), { opacity: 1, stagger: 0.08, ease: 'none', scrollTrigger: { trigger: p, start: 'top 78%', end: 'bottom 42%', scrub: true } })
         );
+        // photo → render wipe, scrubbed alongside the manifesto words
+        gsap.utils.toArray('[data-develop]').forEach((fig) => {
+          const out = fig.querySelector('[data-dev]');
+          ScrollTrigger.create({
+            trigger: fig.closest('section')?.querySelector('[data-words]') || fig, start: 'top 78%', end: 'bottom 42%', scrub: true,
+            onUpdate: (s) => {
+              const v = Math.round(s.progress * 100);
+              fig.style.setProperty('--dev', v);
+              if (out) out.textContent = v + '%';
+            },
+          });
+        });
         gsap.utils.toArray('[data-count]').forEach((el) => {
           const o = { v: 0 }, to = +el.dataset.count;
           el.textContent = '0';

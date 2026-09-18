@@ -21,12 +21,28 @@ export default async function Home() {
       <Hero site={site} />
 
       <section className="manifesto">
-        <div className="eyebrow mono">Manifesto / 01</div>
-        <Words text={site.manifesto} />
-        <div className="sig mono">
-          <div><b data-count="7">7</b>Years in the frame</div>
-          <div><b data-count={skills.length}>{skills.length}</b>Disciplines, one pipeline</div>
-          <div><b data-count={all.length}>{all.length}</b>Projects on this site</div>
+        <div className="mf-grid">
+          <div className="mf-text">
+            <div className="eyebrow mono">Manifesto / 01</div>
+            <Words text={site.manifesto} />
+            <Link href="/about" className="link-arrow mono">The story so far →</Link>
+          </div>
+          <figure className="mf-fig" data-develop>
+            <div className="mf-frame">
+              <img src={site.heroCaptured} alt="The studio photograph" loading="lazy" />
+              <img className="mf-unreal" src={site.heroUnreal} alt="The same frame as a CGI render" loading="lazy" />
+              <span className="mf-scan" aria-hidden="true" />
+              <span className="mf-tag mono l">Captured</span>
+              <span className="mf-tag mono r">Unreal</span>
+            </div>
+            <figcaption className="mono"><span>Fig. 02 · Same frame, two crafts</span><span>Developed <b data-dev>0%</b></span></figcaption>
+          </figure>
+        </div>
+        <div className="mf-stats">
+          <div><b><span data-count="7">7</span><i>+</i></b><span className="mono">Years</span><p>On both sides of the lens, across studios, product teams and my own practice.</p></div>
+          <div><b><span data-count={skills.length}>{skills.length}</span></b><span className="mono">Crafts</span><p>Photography, motion, 3D, AI and creative tech in one pipeline.</p></div>
+          <div><b><span data-count={all.length}>{all.length}</span></b><span className="mono">Case studies</span><p>Brand films, product worlds, generative films and identities.</p></div>
+          <div><b><span data-count={shoots.length}>{shoots.length}</span></b><span className="mono">Concept shoots</span><p>Editorials and fashion films, lit and directed at Magizh Studio.</p></div>
         </div>
       </section>
 
