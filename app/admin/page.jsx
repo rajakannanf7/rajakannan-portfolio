@@ -2,88 +2,74 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { collection, getCountFromServer, getDocs, query, where, writeBatch, doc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, writeBatch } from 'firebase/firestore';
 import { db, firebaseReady } from '../../lib/firebase';
+import { DEMO, countDocs, listAll } from '../../lib/admin';
 import * as seed from '../../lib/fallback';
 import { Btn, Card } from '../../components/ui/admin-bits';
 
+const COLS = [
+  { key: 'projects', label: 'Projects', href: '/admin/projects', seed: seed.projects, id: (x) => x.slug },
+  { key: 'shoots', label: 'Shoots', href: '/admin/shoots', seed: seed.shoots, id: (x) => x.slug },
+  { key: 'skills', label: 'Skills', href: '/admin/skills', seed: seed.skills, id: (x) => x.slug },
+  { key: 'labs', label: 'Lab tiles', href: '/admin/lab', seed: seed.labs, id: (x) => x.id },
+];
+
 export default function AdminHome() {
   const [counts, setCounts] = useState(null);
-  const [seeding, setSeeding] = useState('');
+  const [state, setState] = useState('');
 
   async function load() {
-    if (!firebaseReady || !db) return;
-    const names = ['projects', 'photos', 'labs', 'enquiries'];
+    if (!DEMO && (!firebaseReady || !db)) return;
     const out = {};
-    for (const n of names) {
-      try {
-        const snap = await getCountFromServer(collection(db, n));
-        out[n] = snap.data().count;
-      } catch {
-        out[n] = 0;
-      }
+    for (const c of [...COLS.map((c) => c.key), 'enquiries']) {
+      try { out[c] = await countDocs(c); } catch { out[c] = 0; }
     }
     try {
-      const s = await getDocs(query(collection(db, 'enquiries'), where('status', '==', 'new')));
-      out.newEnquiries = s.size;
-    } catch {
-      out.newEnquiries = 0;
-    }
+      out.newEnquiries = DEMO ? (await listAll('enquiries')).filter((e) => e.status === 'new').length
+        : (await getDocs(query(collection(db, 'enquiries'), where('status', '==', 'new')))).size;
+    } catch { out.newEnquiries = 0; }
     setCounts(out);
   }
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function seedAll() {
-    if (!confirm('Copy the starter content into Firestore? Existing documents with the same ids are overwritten.')) return;
-    setSeeding('working');
+  // Seeds only the collections that are empty, so it never overwrites real content.
+  async function seedEmpty() {
+    const empty = COLS.filter((c) => !counts?.[c.key]);
+    if (!confirm(`Copy the starter content into: ${empty.map((c) => c.label).join(', ') || 'nothing'}${counts?.settings ? '' : ' + site settings'}? Collections that already have content are left alone.`)) return;
+    setState('working');
     try {
       const batch = writeBatch(db);
-      seed.projects.forEach((p) => batch.set(doc(db, 'projects', p.slug), p));
-      seed.photos.forEach((p) => batch.set(doc(db, 'photos', p.id), p));
-      seed.labs.forEach((l) => batch.set(doc(db, 'labs', l.id), l));
-      batch.set(doc(db, 'settings', 'site'), seed.site);
+      empty.forEach((c) => c.seed.forEach((x) => { const { id, ...data } = x; batch.set(doc(db, c.key, c.id(x)), data); }));
+      batch.set(doc(db, 'settings', 'site'), seed.site, { merge: true });
       await batch.commit();
-      setSeeding('done');
+      setState('done');
       load();
     } catch (e) {
       console.error(e);
-      setSeeding('error');
+      setState(`error: ${e.message}`);
     }
   }
 
-  const tiles = [
-    { href: '/admin/projects', label: 'Projects', n: counts?.projects },
-    { href: '/admin/photos', label: 'Photographs', n: counts?.photos },
-    { href: '/admin/lab', label: 'Lab tiles', n: counts?.labs },
-    { href: '/admin/enquiries', label: 'Enquiries', n: counts?.enquiries, badge: counts?.newEnquiries },
-  ];
-
-  const empty = counts && counts.projects === 0 && counts.photos === 0 && counts.labs === 0;
+  const anyEmpty = counts && COLS.some((c) => !counts[c.key]);
 
   return (
     <div>
       <h1 className="mb-2 text-3xl font-light">Overview</h1>
-      <p className="mb-10 max-w-[620px] text-[15px] font-light leading-relaxed text-mute">
-        The public site reads Firestore first and falls back to the starter content in the repo, so it
-        never renders empty. Anything you change here goes live within a minute.
+      <p className="mb-10 max-w-[640px] text-[15px] font-light leading-relaxed text-mute">
+        Everything on the public site is edited here. Changes go live within about a minute. Collections
+        that are still empty show the starter content from the repo, so the site never looks broken.
       </p>
 
-      <div className="mb-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {tiles.map((t) => (
-          <Link key={t.href} href={t.href}>
-            <Card className="transition-colors hover:border-bone/25">
-              <div className="mb-6 font-mono text-[10px] tracking-[0.18em] text-faint">
-                {t.label.toUpperCase()}
-              </div>
+      <div className="mb-10 grid grid-cols-2 gap-4 lg:grid-cols-5">
+        {[...COLS, { key: 'enquiries', label: 'Enquiries', href: '/admin/enquiries' }].map((t) => (
+          <Link key={t.key} href={t.href}>
+            <Card className="transition-colors hover:border-red/50">
+              <div className="mb-6 font-mono text-[10px] tracking-[0.18em] text-faint">{t.label.toUpperCase()}</div>
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-light">{t.n ?? '—'}</span>
-                {t.badge > 0 && (
-                  <span className="rounded-full bg-orchid/20 px-2.5 py-1 font-mono text-[10px] text-halo">
-                    {t.badge} NEW
-                  </span>
+                <span className="text-4xl font-light">{counts ? counts[t.key] : '—'}</span>
+                {t.key === 'enquiries' && counts?.newEnquiries > 0 && (
+                  <span className="rounded-full bg-red/20 px-2.5 py-1 font-mono text-[10px] text-red">{counts.newEnquiries} NEW</span>
                 )}
               </div>
             </Card>
@@ -91,26 +77,31 @@ export default function AdminHome() {
         ))}
       </div>
 
-      {empty && (
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <div className="mb-3 font-mono text-[10px] tracking-[0.18em] text-halo">FIRST RUN</div>
-          <h2 className="mb-3 text-xl font-light">Firestore is empty.</h2>
-          <p className="mb-6 max-w-[560px] text-[14px] font-light leading-relaxed text-mute">
-            Right now the site is showing the starter content bundled in the repo. Copy it into
-            Firestore and it becomes editable here — the images stay as the local files in{' '}
-            <code className="text-halo">/public/img</code> until you replace them with uploads.
-          </p>
-          <Btn tone="solid" onClick={seedAll} disabled={seeding === 'working'}>
-            {seeding === 'working' ? 'COPYING…' : 'SEED FROM STARTER CONTENT'}
-          </Btn>
-          {seeding === 'done' && <p className="mt-4 text-[13px] text-halo">Done — reload to see the counts.</p>}
-          {seeding === 'error' && (
-            <p className="mt-4 text-[13px] text-orchid">
-              That failed. Usually it means the Firestore rules still block writes — check the README.
-            </p>
-          )}
+          <div className="mb-3 font-mono text-[10px] tracking-[0.18em] text-red">QUICK ACTIONS</div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/projects"><Btn>+ NEW PROJECT</Btn></Link>
+            <Link href="/admin/shoots"><Btn>+ NEW SHOOT</Btn></Link>
+            <Link href="/admin/site"><Btn>EDIT HERO & ABOUT</Btn></Link>
+            <Link href="/" target="_blank"><Btn>VIEW SITE ↗</Btn></Link>
+          </div>
         </Card>
-      )}
+        {anyEmpty && (
+          <Card>
+            <div className="mb-3 font-mono text-[10px] tracking-[0.18em] text-red">FIRST RUN</div>
+            <p className="mb-5 text-[14px] font-light leading-relaxed text-mute">
+              Some collections are empty, so the site shows the starter content for them. Copy it in to make it
+              editable, then replace it piece by piece. Only empty collections are filled.
+            </p>
+            <Btn tone="solid" onClick={seedEmpty} disabled={state === 'working'}>
+              {state === 'working' ? 'COPYING…' : 'SEED EMPTY COLLECTIONS'}
+            </Btn>
+            {state === 'done' && <p className="mt-4 text-[13px] text-red">Done.</p>}
+            {state.startsWith('error') && <p className="mt-4 text-[13px] text-red">That failed ({state.slice(7)}). Usually the Firestore rules still block writes; see the README.</p>}
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,9 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'firebasestorage.googleapis.com' }],
   },
-  transpilePackages: ['three'],
+  async redirects() {
+    return [{ source: '/photography', destination: '/shoots', permanent: true }];
+  },
 };
 
 module.exports = nextConfig;

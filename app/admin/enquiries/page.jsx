@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
-import { patchDoc, removeDoc } from '../../../lib/admin';
+import { listAll, patchDoc, removeDoc } from '../../../lib/admin';
 import { Btn, Card } from '../../../components/ui/admin-bits';
 
 const FILTERS = ['new', 'replied', 'archived', 'all'];
@@ -16,8 +14,7 @@ export default function EnquiriesAdmin() {
   async function load() {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'enquiries'), orderBy('createdAt', 'desc')));
-      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setRows((await listAll('enquiries', 'createdAt')).reverse());
     } catch (e) {
       console.error(e);
     }

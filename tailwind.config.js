@@ -14,6 +14,7 @@ module.exports = {
         violet: '#7C5CFF',
         orchid: '#A46BF0',
         halo: '#C9BFFF',
+        red: '#FF3B1F',
       },
       fontFamily: {
         sans: ['var(--font-archivo)', 'Helvetica Neue', 'Arial', 'sans-serif'],

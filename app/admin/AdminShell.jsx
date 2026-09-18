@@ -5,12 +5,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, firebaseReady } from '../../lib/firebase';
+import { DEMO } from '../../lib/admin';
+import { demo } from '../../lib/admin-demo';
 
 const NAV = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/projects', label: 'Projects' },
-  { href: '/admin/photos', label: 'Photography' },
+  { href: '/admin/shoots', label: 'Shoots' },
+  { href: '/admin/skills', label: 'Skills' },
   { href: '/admin/lab', label: 'Lab' },
+  { href: '/admin/site', label: 'Site' },
   { href: '/admin/enquiries', label: 'Enquiries' },
 ];
 
@@ -23,6 +27,7 @@ export default function AdminShell({ children }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (DEMO) { setUser({ email: 'demo' }); return; }
     if (!firebaseReady || !auth) {
       setUser(null);
       return;
@@ -30,15 +35,15 @@ export default function AdminShell({ children }) {
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
-  if (!firebaseReady) {
+  if (!firebaseReady && !DEMO) {
     return (
       <Frame>
         <div className="mx-auto max-w-[520px] pt-40">
           <h1 className="mb-4 text-3xl font-light">Firebase isn&apos;t connected yet.</h1>
           <p className="text-[15px] font-light leading-relaxed text-mute">
-            Add your keys to <code className="text-halo">.env.local</code> and restart the dev server.
+            Add your keys to <code className="text-red">.env.local</code> and restart the dev server.
             The public site keeps working without them — it renders from{' '}
-            <code className="text-halo">lib/fallback.js</code> — but the admin needs a real project
+            <code className="text-red">lib/fallback.js</code> — but the admin needs a real project
             to write to. See the README for the six variables and the security rules.
           </p>
         </div>
@@ -79,7 +84,7 @@ export default function AdminShell({ children }) {
             type="email"
             placeholder="Email"
             autoComplete="username"
-            className="mb-3 w-full rounded-xl border border-bone/15 bg-bone/[0.02] px-4 py-3.5 text-[15px] outline-none focus:border-bone/40"
+            className="mb-3 w-full rounded-xl border border-bone/15 bg-bone/[0.02] px-4 py-3.5 text-[15px] outline-none focus:border-red"
           />
           <input
             value={password}
@@ -87,12 +92,12 @@ export default function AdminShell({ children }) {
             type="password"
             placeholder="Password"
             autoComplete="current-password"
-            className="mb-5 w-full rounded-xl border border-bone/15 bg-bone/[0.02] px-4 py-3.5 text-[15px] outline-none focus:border-bone/40"
+            className="mb-5 w-full rounded-xl border border-bone/15 bg-bone/[0.02] px-4 py-3.5 text-[15px] outline-none focus:border-red"
           />
-          {error && <p className="mb-4 text-[13px] text-orchid">{error}</p>}
+          {error && <p className="mb-4 text-[13px] text-red">{error}</p>}
           <button
             disabled={busy}
-            className="w-full rounded-full bg-bone py-3.5 font-mono text-xs font-medium tracking-chip text-ink disabled:opacity-50"
+            className="w-full rounded-full bg-red py-3.5 font-mono text-xs font-medium tracking-chip text-ink disabled:opacity-50"
           >
             {busy ? 'SIGNING IN…' : 'SIGN IN'}
           </button>
@@ -110,7 +115,7 @@ export default function AdminShell({ children }) {
       <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10">
         <header className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-bone/10 pb-6">
           <div className="flex items-baseline gap-3">
-            <span className="text-lg font-bold tracking-[0.14em]">RAJA</span>
+            <span className="text-lg font-bold tracking-[0.14em]"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-red align-middle" />RAJA KANNAN</span>
             <span className="font-mono text-[10px] tracking-[0.18em] text-dim">/ ADMIN</span>
           </div>
           <div className="flex items-center gap-5">
@@ -118,23 +123,28 @@ export default function AdminShell({ children }) {
               VIEW SITE ↗
             </Link>
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => (DEMO ? (confirm('Reset the demo data?') && (demo.reset(), location.reload())) : signOut(auth))}
               className="font-mono text-[11px] tracking-[0.12em] text-mute hover:text-bone"
             >
-              SIGN OUT
+              {DEMO ? 'RESET DEMO' : 'SIGN OUT'}
             </button>
           </div>
         </header>
 
+        {DEMO && (
+          <div className="mb-6 rounded-xl border border-red/40 bg-red/10 px-4 py-3 text-[13px] text-bone/80">
+            Demo mode: edits are saved in this browser only and do not change the live site. Uploaded files last until the tab closes.
+          </div>
+        )}
         <nav className="mb-10 flex flex-wrap gap-2">
           {NAV.map((n) => {
-            const active = pathname === n.href;
+            const active = n.href === '/admin' ? pathname === n.href : pathname.startsWith(n.href);
             return (
               <Link
                 key={n.href}
                 href={n.href}
                 className={`rounded-full px-5 py-2.5 font-mono text-[11px] tracking-[0.12em] transition-colors ${
-                  active ? 'bg-bone font-medium text-ink' : 'border border-bone/15 text-bone/60 hover:border-bone/40'
+                  active ? 'bg-red font-medium text-ink' : 'border border-bone/15 text-bone/60 hover:border-bone/40'
                 }`}
               >
                 {n.label.toUpperCase()}
