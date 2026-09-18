@@ -70,9 +70,9 @@ Public pages revalidate every 60 seconds, so saved changes appear within about a
 4. GitHub: create a repo for uploads (e.g. `rajakannan-media`, private is fine) with a README so `main`
    exists. Then **Settings → Developer settings → Fine-grained tokens → Generate**, scoped to *only* that
    repo, permission **Contents: Read and write**.
-5. Vercel → Project → Settings → Environment Variables (Production + Preview): the six
-   `NEXT_PUBLIC_FIREBASE_*` values, `ADMIN_EMAILS`, `MEDIA_REPO`, `MEDIA_BRANCH`, and the secret
-   `GITHUB_TOKEN`. See `.env.example`. Redeploy.
+5. Vercel → Project → Settings → Environment Variables (Production + Preview): add the secret
+   `GITHUB_TOKEN`, then redeploy. The public settings (Firebase config, admin email, media repo) are
+   defaults in `lib/config.js`; set the env vars in `.env.example` only to override them.
 6. Put your admin email in `firestore.rules` (the `isAdmin()` list), then publish the rules: paste them in
    **Firestore → Rules**, or run `npx firebase-tools login` once and `npx firebase-tools deploy --only firestore:rules`.
 7. Open `/admin`, sign in, and press **Seed empty collections**.

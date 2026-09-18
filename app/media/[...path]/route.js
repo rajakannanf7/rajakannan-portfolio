@@ -1,3 +1,5 @@
+import { mediaBranch, mediaRepo } from '../../../lib/config';
+
 export const runtime = 'nodejs';
 
 const TYPES = {
@@ -10,8 +12,7 @@ const TYPES = {
 // year at Vercel's edge and in browsers; GitHub is only hit on a cache miss.
 // Works with a private media repo because the token stays on the server.
 export async function GET(_request, { params }) {
-  const repo = process.env.MEDIA_REPO;
-  const branch = process.env.MEDIA_BRANCH || 'main';
+  const repo = mediaRepo, branch = mediaBranch;
   const token = process.env.GITHUB_TOKEN;
   const parts = (params.path || []).filter((p) => p && p !== '..' && p !== '.');
   const ext = (parts[parts.length - 1] || '').split('.').pop().toLowerCase();

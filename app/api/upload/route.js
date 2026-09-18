@@ -1,4 +1,5 @@
 import { requireAdmin } from '../../../lib/server-auth';
+import { mediaBranch, mediaRepo } from '../../../lib/config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,10 +19,9 @@ export async function POST(request) {
     return json({ error: e.message }, e.status || 401);
   }
 
-  const repo = process.env.MEDIA_REPO; // e.g. "rajakannanf7/rajakannan-media"
-  const branch = process.env.MEDIA_BRANCH || 'main';
+  const repo = mediaRepo, branch = mediaBranch;
   const token = process.env.GITHUB_TOKEN;
-  if (!repo || !token) return json({ error: 'Media storage is not configured (MEDIA_REPO / GITHUB_TOKEN).' }, 500);
+  if (!repo || !token) return json({ error: 'Media storage is not configured (add GITHUB_TOKEN in Vercel).' }, 500);
 
   let file, folder;
   try {
