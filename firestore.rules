@@ -2,16 +2,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Anyone may read the portfolio. Only a signed-in user may change it.
-    // (Drafts are hidden by the site code; the data itself is public.)
-    match /{col}/{doc} {
-      allow read: if col in ['projects', 'shoots', 'skills', 'labs', 'settings'];
-      allow write: if request.auth != null
-                   && col in ['projects', 'shoots', 'skills', 'labs', 'settings'];
+    // Only these accounts may edit the site. Firebase lets anyone holding the
+    // public web config create an email/password account, so "signed in" alone
+    // is not enough. Keep this list in sync with ADMIN_EMAILS on Vercel.
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.token.email != null
+          && request.auth.token.email.lower() in ['rajakannanf7@gmail.com'];
     }
 
-    // Enquiries: the public may CREATE one, but never read anyone else's.
-    // Only you, signed in, can read or change them.
+    // The portfolio is public to read; only the admin may change it.
+    match /{col}/{doc} {
+      allow read: if col in ['projects', 'shoots', 'skills', 'labs', 'settings'];
+      allow write: if isAdmin() && col in ['projects', 'shoots', 'skills', 'labs', 'settings'];
+    }
+
+    // Enquiries: the public may CREATE one (the contact form) but never read them.
     match /enquiries/{doc} {
       allow create: if request.resource.data.keys().hasAll(['name','email','message'])
                     && request.resource.data.name is string
@@ -21,7 +27,7 @@ service cloud.firestore {
                     && request.resource.data.email.size() < 200
                     && request.resource.data.message is string
                     && request.resource.data.message.size() < 5000;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isAdmin();
     }
   }
 }

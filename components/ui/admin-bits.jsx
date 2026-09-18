@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { uploadMedia } from '../../lib/admin';
+import { UPLOAD_CONCURRENCY, uploadMedia } from '../../lib/admin';
 import { videoEmbed } from '../../lib/text';
 
 export const inputCls =
@@ -77,7 +77,7 @@ function useUploader(folder) {
         }
       }
     };
-    await Promise.all([worker(), worker(), worker()]);
+    await Promise.all(Array.from({ length: UPLOAD_CONCURRENCY }, worker));
     onDone(results.filter(Boolean));
   }
   const clearErrors = () => setJobs((j) => j.filter((x) => !x.err));
@@ -174,7 +174,7 @@ export function MediaListField({ value = [], onChange, folder, sizes = false, on
     <div>
       <DropZone multiple accept="image/*,video/*" onFiles={(f) => run(f, add)} className="px-4 py-6 text-center">
         <div className="font-mono text-[10px] tracking-[0.18em] text-bone/70">DROP IMAGES / VIDEOS HERE, OR CLICK TO PICK</div>
-        <div className="mt-1 text-[11px] text-faint">Select many at once. Images are compressed; videos up to 100 MB.</div>
+        <div className="mt-1 text-[11px] text-faint">Select many at once. Images are compressed automatically; videos up to 4 MB (paste a YouTube/Vimeo link for longer films).</div>
       </DropZone>
       <Jobs jobs={jobs} clearErrors={clearErrors} />
       <div className="mt-3 flex gap-2">
