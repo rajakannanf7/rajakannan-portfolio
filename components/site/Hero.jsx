@@ -8,11 +8,12 @@ import { Accent } from './bits';
 gsap.registerPlugin(ScrollTrigger);
 
 const FS = `precision highp float;
-uniform sampler2D A,B,M;uniform vec2 res,ir;uniform float t,sc;varying vec2 uv;
+uniform sampler2D A,B,M;uniform vec2 res,ir,fo;uniform float t,sc;varying vec2 uv;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
-vec2 cover(vec2 u){float rs=res.x/res.y,ri=ir.x/ir.y;vec2 s=rs>ri?vec2(1.,ri/rs):vec2(rs/ri,1.);return (u-.5)*s+.5;}
+// object-fit:cover around a focal point, so tall phone screens crop onto the subject
+vec2 cover(vec2 u){float rs=res.x/res.y,ri=ir.x/ir.y;vec2 s=rs>ri?vec2(1.,ri/rs):vec2(rs/ri,1.);vec2 c=clamp(fo,s*.5,1.-s*.5);return (u-.5)*s+c;}
 void main(){
   float nz=n(uv*5.+t*.12)*.6+n(uv*13.-t*.18)*.3+n(uv*31.+t*.3)*.1;
   float mk=texture2D(M,uv).r;
@@ -80,6 +81,7 @@ export default function Hero({ site }) {
   // ---------- WebGL ----------
   useEffect(() => {
     const cv = canvas.current, heroEl = root.current;
+    const focusX = Number(site.heroFocus) || 0.58; // horizontal focal point of the hero pair, 0..1
     const gl = cv.getContext('webgl', { antialias: false });
     if (!gl) return;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
@@ -100,15 +102,36 @@ export default function Hero({ site }) {
     };
     gl.uniform1i(U('A'), 0); gl.uniform1i(U('B'), 1); gl.uniform1i(U('M'), 2);
 
-    const MW = 256, MH = 144, mc = document.createElement('canvas'), mx = mc.getContext('2d', { willReadFrequently: true });
-    mc.width = MW; mc.height = MH; mx.fillStyle = '#000'; mx.fillRect(0, 0, MW, MH);
+    // Mask canvas shares the screen's aspect ratio (long side 256px) so the brush stays a circle.
+    let MW = 256, MH = 144, SH = 144;
+    const mc = document.createElement('canvas'), mx = mc.getContext('2d', { willReadFrequently: true });
+    const sizeMask = () => {
+      const w = cv.clientWidth || 16, h = cv.clientHeight || 9;
+      if (w >= h) { MW = 256; MH = Math.round((256 * h) / w); } else { MH = 256; MW = Math.round((256 * w) / h); }
+      SH = Math.min(MW, MH);
+      mc.width = MW; mc.height = MH; mx.fillStyle = '#000'; mx.fillRect(0, 0, MW, MH);
+    };
+    sizeMask();
 
-    const size = () => { const d = Math.min(devicePixelRatio, 1.75); cv.width = cv.clientWidth * d; cv.height = cv.clientHeight * d; gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('res'), cv.width, cv.height); };
+    const size = () => { const d = Math.min(devicePixelRatio, 1.75); cv.width = cv.clientWidth * d; cv.height = cv.clientHeight * d; gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('res'), cv.width, cv.height); sizeMask(); };
     size(); addEventListener('resize', size);
 
     let px = 0.5, py = 0.5, lx = 0.5, ly = 0.5, last = -1e4, inView = true, scroll = 0, frame = 0, raf, alive = true;
-    const move = (e) => { const r = heroEl.getBoundingClientRect(); px = (e.clientX - r.left) / r.width; py = (e.clientY - r.top) / r.height; last = performance.now(); };
+    let holdStart = 0, bloom = 0; // touch & hold grows the reveal
+    const at = (x, y) => { const r = heroEl.getBoundingClientRect(); px = (x - r.left) / r.width; py = (y - r.top) / r.height; last = performance.now(); };
+    const move = (e) => { if (e.pointerType === 'mouse') at(e.clientX, e.clientY); };
+    const tStart = (e) => {
+      const t0 = e.touches[0]; if (!t0) return;
+      at(t0.clientX, t0.clientY); lx = px; ly = py; holdStart = performance.now();
+      // Chrome only allows vibration after a real tap on the page; skip it before that.
+      try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8); } catch {}
+    };
+    const tMove = (e) => { const t0 = e.touches[0]; if (t0) at(t0.clientX, t0.clientY); };
+    const tEnd = () => { holdStart = 0; last = performance.now(); };
     heroEl.addEventListener('pointermove', move);
+    heroEl.addEventListener('touchstart', tStart, { passive: true });
+    heroEl.addEventListener('touchmove', tMove, { passive: true });
+    heroEl.addEventListener('touchend', tEnd); heroEl.addEventListener('touchcancel', tEnd);
     const io = new IntersectionObserver(([en]) => (inView = en.isIntersecting)); io.observe(heroEl);
     const onScroll = () => (scroll = Math.min(1, scrollY / innerHeight));
     addEventListener('scroll', onScroll, { passive: true });
@@ -120,12 +143,15 @@ export default function Hero({ site }) {
       raf = requestAnimationFrame(loop);
       if (!inView) return;
       const t = now / 1000, idle = now - last > 2200;
-      if (idle) { px = 0.5 + 0.3 * Math.sin(t * 0.55) + 0.08 * Math.sin(t * 1.7); py = 0.5 + 0.22 * Math.sin(t * 0.8 + 1.2); }
+      const holding = holdStart > 0;
+      if (idle && !holding) { px = 0.5 + 0.3 * Math.sin(t * 0.55) + 0.08 * Math.sin(t * 1.7); py = 0.5 + 0.22 * Math.sin(t * 0.8 + 1.2); }
       const dx = px - lx, dy = py - ly, sp = Math.min(1, Math.hypot(dx, dy) * 18);
       lx += dx * 0.18; ly += dy * 0.18;
-      mx.globalCompositeOperation = 'source-over'; mx.fillStyle = 'rgba(0,0,0,0.028)'; mx.fillRect(0, 0, MW, MH);
+      // holding: bloom eases up to fill the frame; released: it relaxes back
+      bloom += ((holding ? Math.min(1, (now - holdStart) / 1400) : 0) - bloom) * (holding ? 0.08 : 0.05);
+      mx.globalCompositeOperation = 'source-over'; mx.fillStyle = `rgba(0,0,0,${holding ? 0.012 : 0.028})`; mx.fillRect(0, 0, MW, MH);
       mx.globalCompositeOperation = 'lighter';
-      const R = (idle ? 26 : 22) + sp * 26, g = mx.createRadialGradient(lx * MW, ly * MH, 0, lx * MW, ly * MH, R);
+      const R = SH * ((idle && !holding ? 0.18 : 0.16) + sp * 0.18 + bloom * 0.95), g = mx.createRadialGradient(lx * MW, ly * MH, 0, lx * MW, ly * MH, R);
       g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
       mx.fillStyle = g; mx.beginPath(); mx.arc(lx * MW, ly * MH, R, 0, 7); mx.fill();
       gl.activeTexture(gl.TEXTURE2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mc);
@@ -143,6 +169,7 @@ export default function Hero({ site }) {
       if (!alive || !a || !b) return;
       try { tex(0, a); tex(1, b); tex(2, mc); } catch { return; } // cross-origin image without CORS
       gl.uniform2f(U('ir'), a.width, a.height);
+      gl.uniform2f(U('fo'), focusX, 0.5);
       setGlOk(true);
       raf = requestAnimationFrame(loop);
     });
@@ -155,6 +182,8 @@ export default function Hero({ site }) {
       alive = false; cancelAnimationFrame(raf); io.disconnect();
       removeEventListener('resize', size); removeEventListener('scroll', onScroll);
       heroEl.removeEventListener('pointermove', move);
+      heroEl.removeEventListener('touchstart', tStart); heroEl.removeEventListener('touchmove', tMove);
+      heroEl.removeEventListener('touchend', tEnd); heroEl.removeEventListener('touchcancel', tEnd);
       st && st.scrollTrigger && st.scrollTrigger.kill(); st && st.kill();
       // No loseContext() here: React strict mode remounts on the same canvas,
       // and a lost context can't be reacquired. The GC frees it on real unmount.
@@ -177,7 +206,7 @@ export default function Hero({ site }) {
         </>
       )}
       <section className="hero" ref={root}>
-        <img className="fallback" src={site.heroCaptured} alt="Studio photograph that turns into its CGI version under the cursor" style={{ visibility: glOk ? 'hidden' : 'visible' }} />
+        <img className="fallback" src={site.heroCaptured} alt="Studio photograph that turns into its CGI version under the cursor" style={{ visibility: glOk ? 'hidden' : 'visible', objectPosition: `${(Number(site.heroFocus) || 0.58) * 100}% 50%` }} />
         <canvas ref={canvas} aria-hidden="true" />
         <div className="shade" />
         <div className="tagl mono"><b />Live / Frame 0701<br />Hasselblad 80mm → Redshift</div>
@@ -189,7 +218,7 @@ export default function Hero({ site }) {
           </h1>
           <div className="hero-row">
             <p>{site.intro}</p>
-            <div className="hint mono"><i>↔</i><span>Move to develop the frame</span></div>
+            <div className="hint mono"><i>↔</i><span className="h-fine">Move to develop the frame</span><span className="h-touch">Touch & hold to develop</span></div>
           </div>
         </div>
       </section>
