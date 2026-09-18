@@ -105,16 +105,39 @@ export default function Hero({ site }) {
     // Mask canvas shares the screen's aspect ratio (long side 256px) so the brush stays a circle.
     let MW = 256, MH = 144, SH = 144;
     const mc = document.createElement('canvas'), mx = mc.getContext('2d', { willReadFrequently: true });
+    // Resizing keeps what's already painted (scaled), so a resize never wipes the reveal.
     const sizeMask = () => {
       const w = cv.clientWidth || 16, h = cv.clientHeight || 9;
-      if (w >= h) { MW = 256; MH = Math.round((256 * h) / w); } else { MH = 256; MW = Math.round((256 * w) / h); }
-      SH = Math.min(MW, MH);
+      let nw, nh;
+      if (w >= h) { nw = 256; nh = Math.round((256 * h) / w); } else { nh = 256; nw = Math.round((256 * w) / h); }
+      if (nw === MW && nh === MH && mc.width) return;
+      const prev = mc.width ? mx.getImageData(0, 0, mc.width, mc.height) : null;
+      const pw = mc.width, ph = mc.height;
+      MW = nw; MH = nh; SH = Math.min(MW, MH);
       mc.width = MW; mc.height = MH; mx.fillStyle = '#000'; mx.fillRect(0, 0, MW, MH);
+      if (prev) {
+        const tmp = document.createElement('canvas'); tmp.width = pw; tmp.height = ph;
+        tmp.getContext('2d').putImageData(prev, 0, 0);
+        mx.drawImage(tmp, 0, 0, MW, MH);
+      }
     };
+    mc.width = 0;
     sizeMask();
 
-    const size = () => { const d = Math.min(devicePixelRatio, 1.75); cv.width = cv.clientWidth * d; cv.height = cv.clientHeight * d; gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('res'), cv.width, cv.height); sizeMask(); };
-    size(); addEventListener('resize', size);
+    // Mobile browsers fire 'resize' on every frame while the address bar slides during a
+    // scroll. Assigning canvas.width (even the same value) blanks the frame, so only touch
+    // the canvas when its pixel size really changed, and coalesce bursts into one frame.
+    let sizeRaf = 0;
+    const size = () => {
+      const d = Math.min(devicePixelRatio, 1.75);
+      const w = Math.round(cv.clientWidth * d), h = Math.round(cv.clientHeight * d);
+      if (w !== cv.width || h !== cv.height) { cv.width = w; cv.height = h; }
+      // Always cheap to re-send; a remount compiles a fresh program whose uniforms start at 0.
+      gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('res'), cv.width, cv.height);
+      sizeMask();
+    };
+    const onResize = () => { cancelAnimationFrame(sizeRaf); sizeRaf = requestAnimationFrame(size); };
+    size(); addEventListener('resize', onResize);
 
     let px = 0.5, py = 0.5, lx = 0.5, ly = 0.5, last = -1e4, inView = true, scroll = 0, frame = 0, raf, alive = true;
     let holdStart = 0, bloom = 0; // touch & hold grows the reveal
@@ -180,7 +203,7 @@ export default function Hero({ site }) {
 
     return () => {
       alive = false; cancelAnimationFrame(raf); io.disconnect();
-      removeEventListener('resize', size); removeEventListener('scroll', onScroll);
+      removeEventListener('resize', onResize); cancelAnimationFrame(sizeRaf); removeEventListener('scroll', onScroll);
       heroEl.removeEventListener('pointermove', move);
       heroEl.removeEventListener('touchstart', tStart); heroEl.removeEventListener('touchmove', tMove);
       heroEl.removeEventListener('touchend', tEnd); heroEl.removeEventListener('touchcancel', tEnd);
