@@ -4,9 +4,22 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth, firebaseReady } from '../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db, firebaseReady } from '../../lib/firebase';
+import { adminEmails } from '../../lib/config';
 import { DEMO } from '../../lib/admin';
 import { demo } from '../../lib/admin-demo';
+
+// Plain-language versions of Firebase's sign-in error codes.
+function signInMessage(code = '') {
+  if (/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(code))
+    return 'Wrong email or password. Use the user you added under Firebase → Authentication → Users.';
+  if (code.includes('too-many-requests')) return 'Too many attempts. Wait a few minutes, or reset the password in Firebase → Authentication → Users.';
+  if (code.includes('operation-not-allowed')) return 'Email/Password sign-in is switched off. Turn it on in Firebase → Authentication → Sign-in method.';
+  if (code.includes('user-disabled')) return 'This user is disabled in Firebase → Authentication → Users.';
+  if (code.includes('network')) return 'Network error. Check your connection and try again.';
+  return `Sign-in failed (${code || 'unknown error'}).`;
+}
 
 const NAV = [
   { href: '/admin', label: 'Overview' },
@@ -25,6 +38,7 @@ export default function AdminShell({ children }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [health, setHealth] = useState(null); // null = checking; {notAdmin, rules}
 
   useEffect(() => {
     if (DEMO) { setUser({ email: 'demo' }); return; }
@@ -34,6 +48,18 @@ export default function AdminShell({ children }) {
     }
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
+
+  // After sign-in, check the two things that silently break the admin:
+  // the account isn't on the admin list, or the Firestore rules aren't published.
+  useEffect(() => {
+    if (DEMO || !user || !db) return;
+    let alive = true;
+    const notAdmin = !adminEmails.includes(String(user.email || '').toLowerCase());
+    getDoc(doc(db, 'settings', 'site'))
+      .then(() => alive && setHealth({ notAdmin, rules: 'ok' }))
+      .catch((e) => alive && setHealth({ notAdmin, rules: e.code === 'permission-denied' ? 'locked' : `error: ${e.code || e.message}` }));
+    return () => { alive = false; };
+  }, [user]);
 
   if (!firebaseReady && !DEMO) {
     return (
@@ -69,8 +95,8 @@ export default function AdminShell({ children }) {
             setError('');
             try {
               await signInWithEmailAndPassword(auth, email, password);
-            } catch {
-              setError('That email and password combination did not work.');
+            } catch (err) {
+              setError(signInMessage(err?.code));
             }
             setBusy(false);
           }}
@@ -119,6 +145,7 @@ export default function AdminShell({ children }) {
             <span className="font-mono text-[10px] tracking-[0.18em] text-dim">/ ADMIN</span>
           </div>
           <div className="flex items-center gap-5">
+            {!DEMO && user?.email && <span className="font-mono text-[11px] tracking-[0.08em] text-faint">{user.email}</span>}
             <Link href="/" target="_blank" className="font-mono text-[11px] tracking-[0.12em] text-mute hover:text-bone">
               VIEW SITE ↗
             </Link>
@@ -131,6 +158,29 @@ export default function AdminShell({ children }) {
           </div>
         </header>
 
+        {!DEMO && health?.notAdmin && (
+          <div className="mb-6 rounded-xl border border-red/60 bg-red/10 px-5 py-4 text-[14px] leading-relaxed text-bone/90">
+            <b className="text-red">This account is not the admin.</b> You are signed in as <b>{user.email}</b>, but only{' '}
+            <b>{adminEmails.join(', ')}</b> can edit the site. Sign out and sign in with that email, or ask for it to be changed in{' '}
+            <code>lib/config.js</code> and <code>firestore.rules</code>.
+          </div>
+        )}
+        {!DEMO && health?.rules === 'locked' && (
+          <div className="mb-6 rounded-xl border border-red/60 bg-red/10 px-5 py-4 text-[14px] leading-relaxed text-bone/90">
+            <b className="text-red">The database rules are not published yet, so nothing can load or save.</b>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              <li>Open <a className="underline" href="https://console.firebase.google.com/project/rajakannan-portfolio/firestore/rules" target="_blank" rel="noopener noreferrer">Firebase → Firestore Database → Rules ↗</a>.</li>
+              <li>Select everything in the editor and delete it.</li>
+              <li>Paste the contents of <code>firestore.rules</code> from the GitHub repo, then press <b>Publish</b>.</li>
+              <li>Wait about 30 seconds, then reload this page.</li>
+            </ol>
+          </div>
+        )}
+        {!DEMO && health?.rules?.startsWith('error') && (
+          <div className="mb-6 rounded-xl border border-red/60 bg-red/10 px-5 py-4 text-[14px] text-bone/90">
+            <b className="text-red">Could not reach the database</b> ({health.rules.slice(7)}). Check that Firestore Database is created in the Firebase console.
+          </div>
+        )}
         {DEMO && (
           <div className="mb-6 rounded-xl border border-red/40 bg-red/10 px-4 py-3 text-[13px] text-bone/80">
             Demo mode: edits are saved in this browser only and do not change the live site. Uploaded files last until the tab closes.
